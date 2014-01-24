@@ -11,41 +11,87 @@ var log4js = require('log4js');
 var log = log4js.getLogger("requesthandler");
 
 var principal = require("../handler/principal");
+var cal = require("../handler/calendar");
 
-function handlePrincipal(body, req, res, principalID)
+function handlePrincipal(request)
 {
-    switch(req.method)
+    // check if root url or cal or card url
+    var method = request.getReq().method;
+    switch(method)
     {
         case 'PROPFIND':
-            principal.propfind(body, req, res);
+            principal.propfind(request);
             break;
 
         case 'PROPPATCH':
-            principal.proppatch(body, req, res);
+            principal.proppatch(request);
             break;
 
         case 'OPTIONS':
-            principal.options(body, req, res);
+            principal.options(request);
             break;
 
         case 'REPORT':
-            principal.report(body, req, res);
+            principal.report(request);
             break;
 
         default:
-            log.info("Request method is unknown: " + req.method);
+            var res = request.getRes();
+            log.info("Request method is unknown: " + method);
             res.writeHead(500);
-            res.write(req.method + " is not implemented yet");
+            res.write(method + " is not implemented yet");
             break;
     }
 }
 
-function handleCalendar(body, req, res, calID)
+function handleCalendar(request)
 {
-    log.debug("cal");
+    var method = request.getReq().method;
+    switch(method)
+    {
+        case 'PROPFIND':
+            cal.propfind(request);
+            break;
+
+        case 'PROPPATCH':
+            cal.proppatch(request);
+            break;
+
+        case 'OPTIONS':
+            cal.options(request);
+            break;
+
+        case 'REPORT':
+            cal.report(request);
+            break;
+
+        case 'MKCAL':
+        case 'MKCALENDAR':
+            cal.makeCalendar(request);
+            break;
+
+        case 'PUT':
+            cal.put(request);
+            break;
+
+        case 'GET':
+            cal.get(request);
+            break;
+
+        case 'DELETE':
+            cal.delete(request);
+            break;
+
+        default:
+            var res = request.getRes();
+            log.info("Request method is unknown: " + method);
+            res.writeHead(500);
+            res.write(method + " is not implemented yet");
+            break;
+    }
 }
 
-function handleCard(body, req, res, cardID)
+function handleCard(request)
 {
     log.debug("card");
 }

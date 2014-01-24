@@ -14,8 +14,9 @@ module.exports = {
     setDAVHeaders: setDAVHeaders
 };
 
-function setStandardHeaders(res)
+function setStandardHeaders(request)
 {
+    var res = request.getRes();
     res.setHeader("Content-Type", "application/xml; charset=UTF-8");
     res.setHeader("Server", "Fennel");
     res.setHeader("Cache-Control", "private, max-age=0");
@@ -24,8 +25,9 @@ function setStandardHeaders(res)
     res.setHeader("X-XSS-Protection", "1; mode=block");
 }
 
-function setDAVHeaders(res)
+function setDAVHeaders(request)
 {
+    var res = request.getRes();
     res.setHeader("DAV", "1, 3, extended-mkcol, calendar-access, calendar-schedule, calendar-proxy");
     res.setHeader("Allow", "OPTIONS, PROPFIND, HEAD, GET, REPORT, PROPPATCH, PUT, DELETE, POST");
 }
