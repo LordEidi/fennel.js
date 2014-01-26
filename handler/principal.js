@@ -65,7 +65,7 @@ function options(request)
 
 function report(request)
 {
-    console.log("Call REPORT");
+    log.debug("principal.report called");
 
     rh.setStandardHeaders(request);
 
@@ -172,7 +172,7 @@ function replyPropertyCalendarProxyWriteFor(request)
 
 function proppatch(request)
 {
-    console.log("Call PROPPATCH");
+    log.debug("principal.proppatch called");
 
     rh.setStandardHeaders(request);
 

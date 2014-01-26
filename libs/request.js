@@ -77,3 +77,16 @@ request.prototype.getFilenameFromPath = function()
     var filename = aUrl[aUrl.length - 1];
     return filename.substr(0, filename.length - 4);
 }
+
+request.prototype.getLastPathElement = function()
+{
+    var aUrl = url.parse(this.req.url).pathname.split("/");
+    if(aUrl.length <= 0)
+    {
+        log.warn('Something evil happened in calendar.put!');
+        return undefined;
+    }
+
+    var filename = aUrl[aUrl.length - 2];
+    return filename;
+}

@@ -23,8 +23,8 @@ var ICS = schema.define('ICS', {
 var CAL = schema.define('CAL', {
     id: {type: String, limit: 50, index: true},
     timezone: {type: String},
-    order: {type: Number},
-    free_busy_set: {type: Boolean},
+    order: {type: String},
+    free_busy_set: {type: String},
     supported_cal_component: {type: String},
     colour: {type: String},
     displayname: {type: String}

@@ -80,16 +80,6 @@ function put(request)
     res.writeHead(204);
 }
 
-function makeCalendar(request)
-{
-    log.debug("calendar.makeCalendar called");
-
-    if(isMakeCalendar(request))
-    {
-        handleMakeCalendar(request);
-    }
-}
-
 function propfind(request)
 {
     log.debug("calendar.propfind called");
@@ -123,6 +113,16 @@ function propfind(request)
 
 }
 
+function makeCalendar(request)
+{
+    log.debug("calendar.makeCalendar called");
+
+    if(isMakeCalendar(request))
+    {
+        handleMakeCalendar(request);
+    }
+}
+
 function isMakeCalendar(request)
 {
     var body = request.getBody();
@@ -138,62 +138,75 @@ function handleMakeCalendar(request)
     var body = request.getBody();
     var xmlDoc = xml.parseXml(body);
 
-    var node = xmlDoc.get('/B:mkcalendar/A:set/A:prop', { A: 'DAV:', B: 'urn:ietf:params:xml:ns:caldav'});
+    var node = xmlDoc.get('/B:mkcalendar/A:set/A:prop', { A: 'DAV:', B: 'urn:ietf:params:xml:ns:caldav', D: 'http://apple.com/ns/ical/'});
 
-    if(node.hasChildNodes())
+    var childs = node.childNodes();
+
+    var timezone,
+    order,
+    free_busy_set,
+    supported_cal_component,
+    colour,
+    displayname;
+
+    var len = childs.length;
+    for (var i=0; i < len; ++i)
     {
-        var child = node.nextNode();
-        log.debug(child.toString());
-    }
-/*
-    ics.updateOrCreate({
-        id: filename,
-        timezone: ,
-        order: ,
-        free_busy_set: ,
-        supported_cal_component: ,
-        colour: ,
-        displayname:
-    }, function(err, post){
-        log.warn('err: ' + err);
-        log.debug('post: ' + post);
-    });
-*/
-    /*
-    <B:calendar-timezone>BEGIN:VCALENDAR&#13;
-    VERSION:2.0&#13;
-    PRODID:-//Apple Inc.//Mac OS X 10.9.1//EN&#13;
-    CALSCALE:GREGORIAN&#13;
-    BEGIN:VTIMEZONE&#13;
-    TZID:GMT&#13;
-    BEGIN:STANDARD&#13;
-    TZOFFSETFROM:+0000&#13;
-    DTSTART:20010101T000000&#13;
-    TZNAME:GMT&#13;
-    TZOFFSETTO:+0000&#13;
-    END:STANDARD&#13;
-    END:VTIMEZONE&#13;
-    END:VCALENDAR&#13;
-    </B:calendar-timezone>
-    <D:calendar-order xmlns:D="http://apple.com/ns/ical/">3</D:calendar-order>
-    <B:calendar-free-busy-set>
-        <YES/>
-    </B:calendar-free-busy-set>
-<B:supported-calendar-component-set>
-    <B:comp name="VEVENT"/>
-</B:supported-calendar-component-set>
-    <D:calendar-color xmlns:D="http://apple.com/ns/ical/" symbolic-color="purple">#711A76FF</D:calendar-color>
-<A:displayname>Untitled</A:displayname>
-    */
+        var child = childs[i];
+        var name = child.name();
+        switch(name)
+        {
+            case 'calendar-color':
+                colour = child.text();
+                break;
 
+            case 'calendar-free-busy-set':
+                free_busy_set = "YES";
+                break;
+
+            case 'displayname':
+                displayname = child.text();
+                break;
+
+            case 'calendar-order':
+                order = child.text();
+                break;
+
+            case 'supported-calendar-component-set':
+                supported_cal_component = "VEVENT";
+                break;
+
+            case 'calendar-timezone':
+                timezone = child.text();
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    //node.childNodes()[1].attr("symbolic-color").value()
+    //node.childNodes()[1].text()
+    var filename = request.getLastPathElement();
+
+    cal.updateOrCreate({
+        id: filename,
+        timezone: timezone,
+        order: order,
+        free_busy_set: free_busy_set,
+        supported_cal_component: supported_cal_component,
+        colour: colour,
+        displayname: displayname
+    }, function(err, post){
+        if(err != null)
+        {
+            log.warn('err: ' + err);
+            log.debug('post: ' + JSON.stringify(post, null, 4));
+        }
+    });
 
     var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response><d:href>" + request.getURL() + "</d:href></d:response>");
-    res.write("<d:propstat><d:prop>");
-    res.write("</d:prop><d:status>HTTP/1.1 200 OK</d:status>");
-    res.write("</d:propstat></d:response>");
-    res.write("</d:multistatus>");
+    res.writeHead(201);
 }
 
 
@@ -251,7 +264,7 @@ function options(request)
 
 function report(request)
 {
-    console.log("Call REPORT");
+    log.debug("calendar.report called");
 
     rh.setStandardHeaders(res);
 
@@ -277,7 +290,7 @@ function report(request)
 
 function proppatch(request)
 {
-    console.log("Call PROPPATCH");
+    log.debug("calendar.proppatch called");
 
     rh.setStandardHeaders(request);
 

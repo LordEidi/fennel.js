@@ -57,15 +57,10 @@ var basic = auth.basic(
 var crypto = require('crypto');
 function checkLogin(username, password)
 {
-    console.log("Login");
-    console.log(username);
-    var user = username;
-
     var md5 = crypto.createHash('md5');
     md5.update(password);
 
-    console.log(password);
-    console.log(md5.digest('hex'));
+    log.debug("Login of user: " + username + ", passwordhash: " + md5.digest('hex'));
 
     return true;
 }
@@ -73,7 +68,7 @@ function checkLogin(username, password)
 // Listen on port 8888, IP defaults to 127.0.0.1
 var server = http.createServer(basic, function (req, res)
 {
-    log.debug("Request started");
+    //log.debug("Request started");
 	log.debug("Method: " + req.method + " URL: " + req.url);
 
 	var body = "";
@@ -169,8 +164,8 @@ server.on('connection', function (stream) {
                 //and then I can check on the other side for a MKCOL method with /MKCALENDAR as the start of the url and
                 //know that it was a MKCALENDAR method
                 //this facilitates MKCALENDAR calls on the CALDAV server
-//                var rewrittenBuffer = Buffer.concat([new Buffer('MKCOL /MKCALENDAR ', 'ascii'), receiveBuffer.slice(11)]);
-                var rewrittenBuffer = Buffer.concat([new Buffer('MKCAL ', 'ascii'), receiveBuffer.slice(11)]);
+                //var rewrittenBuffer = Buffer.concat([new Buffer('MKCOL /MKCALENDAR', 'ascii'), receiveBuffer.slice(11)]);
+                var rewrittenBuffer = Buffer.concat([new Buffer('MKCOL ', 'ascii'), receiveBuffer.slice(11)]);
                 //console.log(rewrittenBuffer.toString('ascii',0,rewrittenBuffer.length));
                 //console.log(rewrittenBuffer.toString('ascii'));
                 //now call the original ondata function with this new buffer

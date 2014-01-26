@@ -65,7 +65,10 @@ function handleCalendar(request)
             cal.report(request);
             break;
 
-        case 'MKCAL':
+        case 'MKCOL':
+            cal.makeCalendar(request);
+            break;
+
         case 'MKCALENDAR':
             cal.makeCalendar(request);
             break;
