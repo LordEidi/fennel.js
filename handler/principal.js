@@ -32,24 +32,127 @@ function propfind(request)
     res.writeHead(207);
     res.write(xh.getXMLHead());
 
-    if(isPropfindChecksumVersion(request))
+    var body = request.getBody();
+    var xmlDoc = xml.parseXml(body);
+
+    var node = xmlDoc.get('/A:propfind/A:prop', {
+        A: 'DAV:',
+        B: "urn:ietf:params:xml:ns:caldav",
+        C: 'http://calendarserver.org/ns/',
+        D: "http://apple.com/ns/ical/",
+        E: "http://me.com/_namespace/"
+    });
+    var childs = node.childNodes();
+
+    var response = "";
+
+    var len = childs.length;
+    for (var i=0; i < len; ++i)
     {
-        replyChecksumVersion(request);
+        var child = childs[i];
+        var name = child.name();
+        switch(name)
+        {
+            case 'checksum-versions':
+                response += "";
+                break;
+
+            case 'sync-token':
+                response += "<d:sync-token>http://sabredav.org/ns/sync/5</d:sync-token>";
+                break;
+
+            case 'supported-report-set':
+                response += getSupportedReportSet(request);
+                break;
+
+            case 'principal-URL':
+                response += "<d:principal-URL><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:principal-URL>\r\n";
+                break;
+
+            case 'displayname':
+                response += "<d:displayname>" + request.getUser().getUserName() + "</d:displayname>";
+                break;
+
+            case 'principal-collection-set':
+                response += "<d:principal-collection-set><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:principal-collection-set>";
+                break;
+
+            case 'current-user-principal':
+                response += "<d:current-user-principal><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:current-user-principal>";
+                break;
+
+            case 'calendar-home-set':
+                response += "<cal:calendar-home-set><d:href>/cal/" + request.getUser().getUserName() + "</d:href></cal:calendar-home-set>";
+                break;
+
+            case 'schedule-outbox-URL':
+                response += "<cal:schedule-outbox-URL><d:href>/cal/" + request.getUser().getUserName() + "/outbox</d:href></cal:schedule-outbox-URL>";
+                break;
+
+            case 'calendar-user-address-set':
+                response += getCalendarUserAddressSet(request);
+                break;
+
+            case 'notification-URL':
+                response += "<cs:notification-URL><d:href>/cal/" + request.getUser().getUserName() + "/notifications/</d:href></cs:notification-URL>";
+                break;
+
+            case 'getcontenttype':
+                response += "";
+                break;
+
+            default:
+                if(name != 'text') log.debug("P: not handled: " + name);
+                break;
+        }
     }
 
-    if(isPropfindSynctoken(request))
-    {
-        replyPropfindSynctoken(request);
-    }
+    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+    res.write("<d:response><d:href>" + request.getURL() + "</d:href>");
+    res.write("<d:propstat>");
+    res.write("<d:prop>");
+    res.write(response);
+    res.write("</d:prop>");
+    res.write("<d:status>HTTP/1.1 200 OK</d:status>");
+    res.write("</d:propstat>");
+    res.write("</d:response>");
+    res.write("</d:multistatus>");
+}
 
-    if(isPropfindSupportedReportSet(request))
-    {
-        replyPropfindSupportedReportSet(request);
-    }
-    else if(isPrincipalURL(request))
-    {
-        replyPrincipalURL(request);
-    }
+function getCalendarUserAddressSet(request)
+{
+    var response = "";
+
+    response += "        <cal:calendar-user-address-set>\r\n";
+    response += "        	<d:href>mailto:lord test at swordlord.com</d:href>\r\n";
+    response += "        	<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n";
+    response += "        </cal:calendar-user-address-set>\r\n";
+
+    return response;
+}
+
+function getSupportedReportSet(request)
+{
+    var response = "";
+    response += "        <d:supported-report-set>\r\n";
+    response += "        	<d:supported-report>\r\n";
+    response += "        		<d:report>\r\n";
+    response += "        			<d:expand-property/>\r\n";
+    response += "        		</d:report>\r\n";
+    response += "        	</d:supported-report>\r\n";
+    response += "        	<d:supported-report>\r\n";
+    response += "        		<d:report>\r\n";
+    response += "        			<d:principal-property-search/>\r\n";
+    response += "        		</d:report>\r\n";
+    response += "        	</d:supported-report>\r\n";
+    response += "        	<d:supported-report>\r\n";
+    response += "        		<d:report>\r\n";
+    response += "        			<d:principal-search-property-set/>\r\n";
+    response += "        		</d:report>\r\n";
+    response += "        	</d:supported-report>\r\n";
+    response += "        </d:supported-report-set>\r\n";
+
+    return response;
 }
 
 function options(request)
@@ -84,34 +187,6 @@ function report(request)
     }
 }
 
-function isPrincipalURL(request)
-{
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
-
-    var node = xmlDoc.get('/A:propfind/A:prop/A:principal-URL', { A: 'DAV:' });
-
-    return typeof node != 'undefined';
-}
-
-function replyPrincipalURL(request)
-{
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
-    res.write("  <d:response>\r\n");
-    res.write("    <d:href>" + url + "</d:href>\r\n");
-    res.write("    <d:propstat>\r\n");
-    res.write("      <d:prop>\r\n");
-    res.write("        <d:principal-URL>\r\n");
-    res.write("        		<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n");
-    res.write("        </d:principal-URL>\r\n");
-    res.write("      </d:prop>\r\n");
-    res.write("		<d:status>HTTP/1.1 200 OK</d:status>\r\n");
-    res.write("    </d:propstat>\r\n");
-    res.write("  </d:response>\r\n");
-    res.write("</d:multistatus>\r\n");
-}
 
 function isReportPrincipalSearchPropertySet(request)
 {
@@ -141,6 +216,7 @@ function replyPrincipalSearchPropertySet(request)
     res.write("  </d:principal-search-property>\r\n");
     res.write("</d:principal-search-property-set>\r\n");
 }
+
 
 function isReportPropertyCalendarProxyWriteFor(request)
 {
@@ -194,131 +270,3 @@ function proppatch(request)
     res.write("</d:multistatus>\r\n");
 }
 
-function isPropfindChecksumVersion(request)
-{
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
-
-    var node = xmlDoc.get('/A:propfind/A:prop/C:checksum-versions', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
-
-    return typeof node != 'undefined';
-}
-
-function replyChecksumVersion(request)
-{
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response><d:href>" + url + "</d:href></d:response>");
-    res.write("</d:multistatus>");
-}
-
-function isPropfindSynctoken(request)
-{
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
-
-    var node = xmlDoc.get('/A:propfind/A:prop/A:sync-token', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
-
-    return typeof node != 'undefined';
-}
-
-function replyPropfindSynctoken(request)
-{
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response>");
-    res.write("<d:href>" + url + "</d:href>");
-    res.write("<d:propstat><d:prop>");
-    res.write("<d:sync-token>http://sabredav.org/ns/sync/5</d:sync-token>");
-    res.write("<cs:getctag>http://sabredav.org/ns/sync/5</cs:getctag></d:prop>");
-    res.write("<d:status>HTTP/1.1 200 OK</d:status>");
-    res.write("</d:propstat></d:response>");
-    res.write("</d:multistatus>");
-}
-
-function isPropfindSupportedReportSet(request)
-{
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
-
-    var node = xmlDoc.get('/A:propfind/A:prop/A:supported-report-set', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
-
-    return typeof node != 'undefined';
-}
-
-function replyPropfindSupportedReportSet(request)
-{
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
-    res.write("  <d:response>\r\n");
-    res.write("    <d:href>" + url + "</d:href>\r\n");
-    res.write("    <d:propstat>\r\n");
-    res.write("      <d:prop>\r\n");
-    res.write("        <d:principal-URL>\r\n");
-    res.write("        		<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n");
-    res.write("        </d:principal-URL>\r\n");
-    res.write("        <d:displayname>lord test</d:displayname>\r\n");
-    res.write("        <d:principal-collection-set>\r\n");
-    res.write("        	<d:href>/p/uid/</d:href>\r\n");
-    res.write("        </d:principal-collection-set>\r\n");
-    res.write("        <d:current-user-principal>\r\n");
-    res.write("        	<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n");
-    res.write("        </d:current-user-principal>\r\n");
-    res.write("        <cal:calendar-home-set>\r\n");
-    res.write("        	<d:href>/cal/" + request.getUser().getUserName() + "</d:href>\r\n");
-    res.write("        </cal:calendar-home-set>\r\n");
-    res.write("        <cal:schedule-outbox-URL>\r\n");
-    res.write("            <d:href>/cal/" + request.getUser().getUserName() + "/outbox</d:href>\r\n");
-    res.write("        </cal:schedule-outbox-URL>\r\n");
-    res.write("        <cal:calendar-user-address-set>\r\n");
-    res.write("        	<d:href>mailto:lord test at swordlord.com</d:href>\r\n");
-    res.write("        	<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n");
-    res.write("        </cal:calendar-user-address-set>\r\n");
-    res.write("        <cs:notification-URL>\r\n");
-    res.write("        	<d:href>/cal/" + request.getUser().getUserName() + "/notifications/</d:href>\r\n");
-    res.write("        </cs:notification-URL>\r\n");
-    res.write("        <d:supported-report-set>\r\n");
-    res.write("        	<d:supported-report>\r\n");
-    res.write("        		<d:report>\r\n");
-    res.write("        			<d:expand-property/>\r\n");
-    res.write("        		</d:report>\r\n");
-    res.write("        	</d:supported-report>\r\n");
-    res.write("        	<d:supported-report>\r\n");
-    res.write("        		<d:report>\r\n");
-    res.write("        			<d:principal-property-search/>\r\n");
-    res.write("        		</d:report>\r\n");
-    res.write("        	</d:supported-report>\r\n");
-    res.write("        	<d:supported-report>\r\n");
-    res.write("        		<d:report>\r\n");
-    res.write("        			<d:principal-search-property-set/>\r\n");
-    res.write("        		</d:report>\r\n");
-    res.write("        	</d:supported-report>\r\n");
-    res.write("        </d:supported-report-set>\r\n");
-    res.write("      </d:prop>\r\n");
-    res.write("		<d:status>HTTP/1.1 200 OK</d:status>\r\n");
-    res.write("    </d:propstat>\r\n");
-    res.write("  </d:response>\r\n");
-    res.write("</d:multistatus>\r\n");
-}
-
-function isPropfindContenttype(request)
-{
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
-
-    var node = xmlDoc.get('/A:propfind/A:prop/A:getcontenttype', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
-
-    return typeof node != 'undefined';
-}
-
-function replyPropfindContenttype(request)
-{
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response><d:href>" + url + "</d:href></d:response>");
-    res.write("</d:multistatus>");
-}
