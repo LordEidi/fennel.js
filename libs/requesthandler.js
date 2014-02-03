@@ -85,6 +85,10 @@ function handleCalendar(request)
             cal.delete(request);
             break;
 
+        case 'MOVE':
+            cal.move(request);
+            break;
+
         default:
             var res = request.getRes();
             log.info("Request method is unknown: " + method);

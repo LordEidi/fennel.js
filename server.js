@@ -31,17 +31,12 @@
 var http = require('http');
 var url = require('url');
 
-var regexp = require('node-regexp');
-
-//var util = require('util');
-
 var log = require('./libs/log').log;
 
 var handler = require('./libs/requesthandler');
 
 //var user = "";
 
-var db = require('./libs/db');
 var reqlib = require('./libs/request');
 
 var auth = require('http-auth');
@@ -69,7 +64,7 @@ function checkLogin(username, password)
 var server = http.createServer(basic, function (req, res)
 {
     //log.debug("Request started");
-	log.debug("Method: " + req.method + " URL: " + req.url);
+	log.debug("Method: " + req.method + ", URL: " + req.url);
 
 	var body = "";
 
@@ -80,7 +75,7 @@ var server = http.createServer(basic, function (req, res)
 
     req.on('end',function()
     {
-        var request = new reqlib.request(req, res, body, "name");
+        var request = new reqlib.request(req, res, body);
 
         var pathname = url.parse(req.url).pathname;
 
@@ -90,50 +85,42 @@ var server = http.createServer(basic, function (req, res)
         }
 
         var aUrl = pathname.split("/");
-        if(aUrl.length <= 0)
+        switch(aUrl[0])
         {
-            log.info("Requested root");
-            res.writeHead(500);
-            res.end("Nothing here");
+            case '.well-known':
+                log.debug("Called .well-known URL for " + aUrl[1] + ". Redirecting to /p/");
+
+                res.writeHead(302,
+                    {
+                        'Location': '/p/'
+                        //add other headers here...?
+                    });
+                break;
+
+            case 'p':
+                handler.handlePrincipal(request);
+                break;
+
+            case 'cal':
+                handler.handleCalendar(request);
+                break;
+
+            case 'card':
+                handler.handleCard(request);
+                break;
+
+            case '':
+                handler.handleCalendar(request);
+                break;
+
+            default:
+                log.info("URL unknown: " + req.url);
+                res.writeHead(500);
+                res.write(req.url + " is not known");
+                break;
         }
-        else
-        {
-            switch(aUrl[0])
-            {
-                case '.well-known':
-                    log.debug("Called .well-known URL for " + aUrl[1] + ". Redirecting to /p/");
 
-                    res.writeHead(302,
-                        {
-                            'Location': '/p/'
-                            //add other headers here...
-                        });
-                    break;
-
-                case 'p':
-                    handler.handlePrincipal(request);
-                    break;
-
-                case 'cal':
-                    handler.handleCalendar(request);
-                    break;
-
-                case 'card':
-                    handler.handleCard(request);
-                    break;
-
-                default:
-                    log.info("URL unknown: " + req.url);
-                    res.writeHead(500);
-                    res.write(req.url + " is not known");
-                    break;
-            }
-
-            if(req.method != 'GET')
-            {
-                res.end();
-            }
-        }
+        request.closeResponseAutomatically();
     });
 });
 

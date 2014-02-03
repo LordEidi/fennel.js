@@ -74,7 +74,7 @@ function propfind(request)
                 break;
 
             case 'principal-collection-set':
-                response += "<d:principal-collection-set><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:principal-collection-set>";
+                response += "<d:principal-collection-set><d:href>/p/</d:href></d:principal-collection-set>";
                 break;
 
             case 'current-user-principal':
@@ -102,13 +102,13 @@ function propfind(request)
                 break;
 
             default:
-                if(name != 'text') log.debug("P: not handled: " + name);
+                if(name != 'text') log.warn("P-PF: not handled: " + name);
                 break;
         }
     }
 
     res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response><d:href>" + request.getURL() + "</d:href>");
+    res.write("<d:response>");
     res.write("<d:propstat>");
     res.write("<d:prop>");
     res.write(response);
@@ -176,10 +176,58 @@ function report(request)
     res.writeHead(200);
     res.write(xh.getXMLHead());
 
-    if(isReportPrincipalSearchPropertySet(request))
+    var body = request.getBody();
+    var xmlDoc = xml.parseXml(body);
+
+    var node = xmlDoc.get('/A:propfind/A:prop', {
+        A: 'DAV:',
+        B: "urn:ietf:params:xml:ns:caldav",
+        C: 'http://calendarserver.org/ns/',
+        D: "http://apple.com/ns/ical/",
+        E: "http://me.com/_namespace/"
+    });
+
+    var response = "";
+
+    if(node != undefined)
     {
-        replyPrincipalSearchPropertySet(request);
+        var childs = node.childNodes();
+
+        var len = childs.length;
+        for (var i=0; i < len; ++i)
+        {
+            var child = childs[i];
+            var name = child.name();
+            switch(name)
+            {
+                case 'principal-search-property-set':
+                    response += getPrincipalSearchPropertySet(request);
+                    break;
+
+                default:
+                    if(name != 'text') log.warn("P-R: not handled: " + name);
+                    break;
+            }
+        }
     }
+
+    if(node != undefined)
+    {
+        var name = node.name();
+        switch(name)
+        {
+            case 'principal-search-property-set':
+                response += getPrincipalSearchPropertySet(request);
+                break;
+
+            default:
+                if(name != 'text') log.warn("P-R: not handled: " + name);
+                break;
+        }
+    }
+
+    // TODO: clean up
+    res.write(response);
 
     if(isReportPropertyCalendarProxyWriteFor(request))
     {
@@ -188,33 +236,25 @@ function report(request)
 }
 
 
-function isReportPrincipalSearchPropertySet(request)
+function getPrincipalSearchPropertySet(request)
 {
-    var body = request.getBody();
-    var xmlDoc = xml.parseXml(body);
+    var response = "";
+    response += "<d:principal-search-property-set xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n";
+    response += "  <d:principal-search-property>\r\n";
+    response += "    <d:prop>\r\n";
+    response += "      <d:displayname/>\r\n";
+    response += "    </d:prop>\r\n";
+    response += "    <d:description xml:lang=\"en\">Display name</d:description>\r\n";
+    response += "  </d:principal-search-property>\r\n";
+    response += "  <d:principal-search-property>\r\n";
+    response += "    <d:prop>\r\n";
+    response += "      <s:email-address/>\r\n";
+    response += "    </d:prop>\r\n";
+    response += "    <d:description xml:lang=\"en\">Email address</d:description>\r\n";
+    response += "  </d:principal-search-property>\r\n";
+    response += "</d:principal-search-property-set>\r\n";
 
-    var node = xmlDoc.get('/A:propfind/A:prop/A:principal-search-property-set', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
-
-    return typeof node != 'undefined';
-}
-
-function replyPrincipalSearchPropertySet(request)
-{
-    var res = request.getRes();
-    res.write("<d:principal-search-property-set xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
-    res.write("  <d:principal-search-property>\r\n");
-    res.write("    <d:prop>\r\n");
-    res.write("      <d:displayname/>\r\n");
-    res.write("    </d:prop>\r\n");
-    res.write("    <d:description xml:lang=\"en\">Display name</d:description>\r\n");
-    res.write("  </d:principal-search-property>\r\n");
-    res.write("  <d:principal-search-property>\r\n");
-    res.write("    <d:prop>\r\n");
-    res.write("      <s:email-address/>\r\n");
-    res.write("    </d:prop>\r\n");
-    res.write("    <d:description xml:lang=\"en\">Email address</d:description>\r\n");
-    res.write("  </d:principal-search-property>\r\n");
-    res.write("</d:principal-search-property-set>\r\n");
+    return response;
 }
 
 

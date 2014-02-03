@@ -17,7 +17,6 @@ module.exports = {
     request: request
 };
 
-
 function request(req, res, body)
 {
     this.req = req;
@@ -32,18 +31,41 @@ function request(req, res, body)
 
     this.user = new userLib.user(username);
 
+    this.closeResAutomatically = true;
+
     return this;
 }
+
+request.prototype.dontCloseResAutomatically = function()
+{
+    this.closeResAutomatically = false;
+};
+
+request.prototype.closeResponseAutomatically = function()
+{
+    if(this.closeResAutomatically)
+    {
+        this.res.end();
+    }
+};
+
+request.prototype.closeRes = function()
+{
+    this.res.end();
+};
+
 
 request.prototype.getUser = function()
 {
     return this.user;
 };
 
+/*
 request.prototype.setUser = function(user)
 {
     this.user = user;
 };
+*/
 
 request.prototype.getReq = function()
 {
@@ -65,7 +87,19 @@ request.prototype.getURL = function()
     return this.req.url;
 };
 
-request.prototype.getFilenameFromPath = function()
+request.prototype.getURLAsArray = function()
+{
+    var aUrl = url.parse(this.req.url).pathname.split("/");
+    if(aUrl.length <= 0)
+    {
+        log.warn('Something evil happened in calendar.put!');
+        return undefined;
+    }
+
+    return aUrl;
+};
+
+request.prototype.getFilenameFromPath = function(removeEnding)
 {
     var aUrl = url.parse(this.req.url).pathname.split("/");
     if(aUrl.length <= 0)
@@ -75,8 +109,14 @@ request.prototype.getFilenameFromPath = function()
     }
 
     var filename = aUrl[aUrl.length - 1];
-    return filename.substr(0, filename.length - 4);
-}
+
+    if(removeEnding)
+    {
+        filename = filename.substr(0, filename.length - 4);
+    }
+
+    return filename;
+};
 
 request.prototype.getLastPathElement = function()
 {
@@ -87,6 +127,28 @@ request.prototype.getLastPathElement = function()
         return undefined;
     }
 
-    var filename = aUrl[aUrl.length - 2];
-    return filename;
-}
+    return aUrl[aUrl.length - 2];
+};
+
+request.prototype.getPathElement = function(position)
+{
+    var aUrl = url.parse(this.req.url).pathname.split("/");
+    if(aUrl.length <= 0)
+    {
+        log.warn('Something evil happened in calendar.put!');
+        return undefined;
+    }
+
+    return aUrl[position];
+};
+
+request.prototype.getUrlElementSize = function()
+{
+    var aUrl = url.parse(this.req.url).pathname.split("/");
+    return aUrl.length;
+};
+
+request.prototype.stringEndsWith = function(str, suffix)
+{
+    return str.indexOf(suffix, str.length - suffix.length) !== -1;
+};
