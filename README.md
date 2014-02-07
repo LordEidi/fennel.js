@@ -3,7 +3,7 @@ Fennel
 
 ![Fennel](https://raw.github.com/LordEidi/fennel/master/fennel_logo.png)
 
-**Fennel** (c) 2014 by SwordLord - the coding crew
+**Fennel** (c) 2014 by [SwordLord - the coding crew](http://www.swordlord.com/)
 
 ## Introduction ##
 
@@ -22,10 +22,37 @@ database can be used with that ORM can be used as storage for **Fennel**. You ju
 
 ## Status ##
 
-The CalDAV part is nearly done and ready for a first public beta.
+The CalDAV part is mostly done and now ready for a first public beta. **Fennel** is tested on Calendar on iOS > v7.0 and on
+OSX Calendar. If you run **Fennel** with another client your mileage may vary.
+
+What's missing:
+
+- password checks (while you can have multiple users, they are not really authenticated and accept all passwords)
+- different clients (we will somewhen test with Mozilla Thunderbird and other clients, but we did not do so yet)
+- configuration (we will add a configuration file where you can change the properties)
 
 Once the calendaring part is working, we will concentrate on the CardDAV part.
 
+
+## Installation ##
+
+First of all, you need a Node.js installation.
+
+On Debian
+
+    apt-get install nodejs
+
+On OSX with brew
+
+    brew install nodejs
+
+Go into the directory where you want to run your copy of **Fennel** and install with the help of npm.
+
+    cd /the/directory/with/fennel
+    npm install fennel@beta
+    nodemon server
+
+Thats it, your instance of fennel should run now.
 
 ## Contribution ##
 

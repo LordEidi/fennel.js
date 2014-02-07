@@ -15,6 +15,7 @@ var sqlite    = require('sequelize-sqlite').sqlite;
 
 var sequelize = new Sequelize('fennel', 'user', 'pwd', {
     dialect: 'sqlite',
+    logging: false,
     storage: 'fennel.sqlite'
 });
 
@@ -32,7 +33,8 @@ var CAL = sequelize.define('CAL', {
     free_busy_set: { type: Sequelize.STRING, allowNull: false},
     supported_cal_component: { type: Sequelize.STRING, allowNull: false},
     colour: { type: Sequelize.STRING, allowNull: false},
-    displayname: { type: Sequelize.STRING, allowNull: false}
+    displayname: { type: Sequelize.STRING, allowNull: false},
+    synctoken: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0}
 });
 
 sequelize.sync().success(function()
@@ -47,5 +49,6 @@ sequelize.sync().success(function()
 // Exporting.
 module.exports = {
     ICS: ICS,
-    CAL: CAL
+    CAL: CAL,
+    sequelize: sequelize
 };

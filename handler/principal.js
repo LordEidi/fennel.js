@@ -159,8 +159,12 @@ function options(request)
 {
     log.debug("principal.options called");
 
-    rh.setStandardHeaders(request);
+    var res = request.getRes();
+    res.setHeader("Content-Type", "text/html");
+    res.setHeader("Server", "Fennel");
+
     rh.setDAVHeaders(request);
+    rh.setAllowHeader(request);
 
     var res = request.getRes();
     res.writeHead(200);
@@ -211,6 +215,14 @@ function report(request)
         }
     }
 
+    node = xmlDoc.get('/A:principal-search-property-set', {
+        A: 'DAV:',
+        B: "urn:ietf:params:xml:ns:caldav",
+        C: 'http://calendarserver.org/ns/',
+        D: "http://apple.com/ns/ical/",
+        E: "http://me.com/_namespace/"
+    });
+
     if(node != undefined)
     {
         var name = node.name();
@@ -246,12 +258,12 @@ function getPrincipalSearchPropertySet(request)
     response += "    </d:prop>\r\n";
     response += "    <d:description xml:lang=\"en\">Display name</d:description>\r\n";
     response += "  </d:principal-search-property>\r\n";
-    response += "  <d:principal-search-property>\r\n";
-    response += "    <d:prop>\r\n";
-    response += "      <s:email-address/>\r\n";
-    response += "    </d:prop>\r\n";
-    response += "    <d:description xml:lang=\"en\">Email address</d:description>\r\n";
-    response += "  </d:principal-search-property>\r\n";
+//    response += "  <d:principal-search-property>\r\n";
+//    response += "    <d:prop>\r\n";
+//    response += "      <s:email-address/>\r\n";
+//    response += "    </d:prop>\r\n";
+//    response += "    <d:description xml:lang=\"en\">Email address</d:description>\r\n";
+//    response += "  </d:principal-search-property>\r\n";
     response += "</d:principal-search-property-set>\r\n";
 
     return response;
