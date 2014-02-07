@@ -1,18 +1,39 @@
 {
-  "name": "Fennel",
-  "description": "Fennel is a lightweight CardDAV / CalDAV server",
-  "version": "0.1.0",
-  "private": true,
-  "dependencies": {
-    "node-regexp": "~0.1.1",
-    "xml2js": "~0.4.1",
-    "htdigest": "~2.0.2",
-    "sequelize": "~1.7.0-rc4",
-    "nodemon": "~1.0.14",
-    "log4js": "~0.6.9",
-    "http-auth": "~2.1.5",
-    "sequelize-sqlite": "~2.0.0-beta.2",
-    "libxmljs": "~0.8.1",
-    "sqlite3": "~2.2.0"
-  }
+    "name": "fennel",
+    "author": {
+        "name": "LordEidi from SwordLord - the coding crew",
+        "email": "<lordeidi@swordlord.com>",
+        "url" : "http://swordlord.com/"
+    },
+    "description": "Fennel is a lightweight CardDAV / CalDAV server",
+    "keywords": [
+            "caldav",
+            "carddav",
+            "lightweight"
+    ],
+    "license": "GPLv3",
+    "version": "0.1.0",
+    "main": "server.js",
+    "readmeFilename": "README.md",
+    "bugs": {
+        "url": "https://github.com/LordEidi/fennel/issues"
+    },
+    "homepage": "https://github.com/LordEidi/fennel",
+    "repository" :
+    {
+        "type" : "git",
+        "url" : "https://github.com/LordEidi/fennel.git"
+    },
+    "dependencies": {
+        "node-regexp": "~0.1.1",
+        "xml2js": "~0.4.1",
+        "htdigest": "~2.0.2",
+        "sequelize": "~1.7.0-rc4",
+        "nodemon": "~1.0.14",
+        "log4js": "~0.6.9",
+        "http-auth": "~2.1.5",
+        "sequelize-sqlite": "~2.0.0-beta.2",
+        "libxmljs": "~0.8.1",
+        "sqlite3": "~2.2.0"
+      }
 }
