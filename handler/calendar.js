@@ -155,12 +155,18 @@ function put(request)
 
             ics.save().success(function()
             {
-                log.warn('ics updated');
+                log.info('ics updated');
 
                 // update calendar collection
                 CAL.find({ where: {pkey: calendar} } ).success(function(cal)
                 {
-                    cal.increment('synctoken', { by: 1 }).success(function() {});
+                    if(cal !== null && cal !== undefined)
+                    {
+                        cal.increment('synctoken', { by: 1 }).success(function()
+                        {
+                            log.info('synctoken on cal updated');
+                        });
+                    }
                 });
             });
         });

@@ -28,18 +28,17 @@
  ** $Id:
  **
 -----------------------------------------------------------------------------*/
+var config = require('./config').config;
 var http = require('http');
 var url = require('url');
-
 var log = require('./libs/log').log;
-
 var handler = require('./libs/requesthandler');
 
 //var user = "";
 
 var reqlib = require('./libs/request');
-
 var auth = require('http-auth');
+
 var basic = auth.basic(
     {
         realm: "Fennel"
@@ -124,7 +123,7 @@ var server = http.createServer(basic, function (req, res)
     });
 });
 
-server.listen(8888);
+server.listen(config.port);
 
 server.on('error', function (e)
 {
@@ -168,4 +167,4 @@ server.on('connection', function (stream) {
 });
 
 // Put a friendly message on the terminal
-log.info("Server running at http://127.0.0.1:8888/");
+log.info("Server running at http://" + config.ip + ":" + config.port + "/");

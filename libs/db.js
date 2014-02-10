@@ -9,14 +9,15 @@
  -----------------------------------------------------------------------------*/
 
 var log = require('../libs/log').log;
+var config = require('../config').config;
 
 var Sequelize = require('sequelize-sqlite').sequelize;
 var sqlite    = require('sequelize-sqlite').sqlite;
 
-var sequelize = new Sequelize('fennel', 'user', 'pwd', {
-    dialect: 'sqlite',
-    logging: false,
-    storage: 'fennel.sqlite'
+var sequelize = new Sequelize(config.db_name, config.db_uid, config.db_pwd, {
+    dialect: config.db_dialect,
+    logging: config.db_logging,
+    storage: config.db_storage
 });
 
 var ICS = sequelize.define('ICS', {
@@ -37,6 +38,21 @@ var CAL = sequelize.define('CAL', {
     synctoken: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0}
 });
 
+var VCARD = sequelize.define('VCARD', {
+    pkey: { type: Sequelize.STRING, allowNull: false, unique: true, primaryKey: true},
+    ownerId: { type: Sequelize.STRING, allowNull: false},
+    addressbookId: { type: Sequelize.STRING, allowNull: false},
+    content: { type: Sequelize.STRING, allowNull: false},
+    is_group: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false}
+});
+
+var ADDRESSBOOK = sequelize.define('ADB', {
+    pkey: { type: Sequelize.STRING, allowNull: false, unique: true, primaryKey: true},
+    ownerId: { type: Sequelize.STRING, allowNull: false},
+    name: { type: Sequelize.STRING, allowNull: false},
+    synctoken: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0}
+});
+
 sequelize.sync().success(function()
     {
         log.info("Database structure updated");
@@ -50,5 +66,7 @@ sequelize.sync().success(function()
 module.exports = {
     ICS: ICS,
     CAL: CAL,
+    VCARD: VCARD,
+    ADB: ADDRESSBOOK,
     sequelize: sequelize
 };

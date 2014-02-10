@@ -101,6 +101,20 @@ function propfind(request)
                 response += "";
                 break;
 
+            case 'addressbook-home-set':
+                response += "<card:addressbook-home-set><d:href>/card/" + request.getUser().getUserName() + "/</d:href></card:addressbook-home-set>";
+                break;
+
+            case 'directory-gateway':
+                response += "";
+                break;
+            case 'email-address-set':
+                response += "";
+                break;
+            case 'resource-id':
+                response += "";
+                break;
+
             default:
                 if(name != 'text') log.warn("P-PF: not handled: " + name);
                 break;

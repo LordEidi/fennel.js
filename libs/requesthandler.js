@@ -12,6 +12,7 @@ var log = log4js.getLogger("requesthandler");
 
 var principal = require("../handler/principal");
 var cal = require("../handler/calendar");
+var card = require("../handler/addressbook");
 
 function handlePrincipal(request)
 {
@@ -100,9 +101,49 @@ function handleCalendar(request)
 
 function handleCard(request)
 {
-    log.debug("card");
-}
+    var method = request.getReq().method;
+    switch(method)
+    {
+        case 'PROPFIND':
+            card.propfind(request);
+            break;
 
+        case 'PROPPATCH':
+            card.proppatch(request);
+            break;
+
+        case 'OPTIONS':
+            card.options(request);
+            break;
+
+        case 'REPORT':
+            card.report(request);
+            break;
+
+        case 'PUT':
+            card.put(request);
+            break;
+
+        case 'GET':
+            card.get(request);
+            break;
+
+        case 'DELETE':
+            card.delete(request);
+            break;
+
+        case 'MOVE':
+            card.move(request);
+            break;
+
+        default:
+            var res = request.getRes();
+            log.info("Request method is unknown: " + method);
+            res.writeHead(500);
+            res.write(method + " is not implemented yet");
+            break;
+    }
+}
 
 // Exporting.
 module.exports = {
