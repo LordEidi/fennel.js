@@ -28,12 +28,11 @@ accordingly.
 - The CalDAV part is mostly done and now ready for a first public beta.
 - The CardDAV part is running and now ready for a first public beta as well.
 
-**Fennel** is tested on Calendar on iOS > v7.0 and on OSX Calendar. If you run **Fennel** with another client
-your mileage may vary. Mozilla Lightning - as example - still refuses to communicate with **Fennel**.
+**Fennel** is tested on Calendar on iOS > v7.0 and on OSX Calendar as well as with Mozilla Lightning. If you run
+**Fennel** with another client your mileage may vary.
 
 What's missing:
 
-- password checks (while you can have multiple users, they are not really authenticated and accept all passwords)
 - different clients (we will somewhen test with other clients, but we did not do thoroughly yet)
 
 
@@ -95,26 +94,64 @@ Now we want to make sure that **Fennel** runs forever. First install this script
 
 Then write the following lines into this file: /etc/init.d/fennel.
 
-    #!/bin/sh
-    #/etc/init.d/fennel
+    #!/bin/bash
+    #
+    # initd for the fennel app
+    # /etc/init.d/fennel
 
-    export PATH=$PATH:/usr/local/bin
-    export NODE_PATH=$NODE_PATH:/usr/local/lib/node_modules
+    pidFile=fennel.pid
+    logFile=fennel_forever.log
+    sourceDir=/home/node/fennel/node_modules/fennel
+    rootPath=/home/node/fennel
+    nodeApp=server.js
+
+    start() {
+       echo "Starting $nodeApp"
+
+       # This is found in the library referenced at the top of the script
+       start_daemon
+
+       forever start --sourceDir=$sourceDir -p $rootPath --pidFile $pidFile -l $logFile -a -d $nodeApp
+       RETVAL=$?
+    }
+
+    restart() {
+       echo -n "Restarting $nodeApp"
+       forever restart $nodeApp
+       RETVAL=$?
+    }
+
+    stop() {
+       echo -n "Shutting down $nodeApp"
+       forever stop $nodeApp
+       RETVAL=$?
+    }
+
+    status() {
+       echo -n "Status $nodeApp"
+       forever list
+       RETVAL=$?
+    }
 
     case "$1" in
-      start)
-        exec forever --sourceDir=/home/node/fennel/node_modules/fennel -p /home/node/fennel server.js
-      ;;
-      stop)
-        exec forever stop --sourceDir=/home/node/fennel/node_modules/fennel server.js
-      ;;
-    *)
-      echo "Usage: /etc/init.d/fennel {start|stop}"
-      exit 1
-      ;;
+       start)
+            start
+            ;;
+        stop)
+            stop
+            ;;
+       status)
+            status
+           ;;
+       restart)
+       	restart
+            ;;
+    	*)
+           echo "Usage:  {start|stop|status|restart}"
+           exit 1
+            ;;
     esac
-
-    exit 0
+    exit $RETVAL
 
 And make sure it is executable:
 

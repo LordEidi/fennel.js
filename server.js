@@ -35,6 +35,7 @@ var log = require('./libs/log').log;
 var handler = require('./libs/requesthandler');
 
 //var user = "";
+var net = require('net');
 
 var reqlib = require('./libs/request');
 var auth = require('http-auth');
@@ -43,20 +44,37 @@ var basic = auth.basic(
     {
         realm: "Fennel"
     }, function (username, password, callback)
-    { // Custom authentication method.
-        callback(checkLogin(username, password));
+    {
+        checkLogin(username, password, callback);
     }
 );
 
-var crypto = require('crypto');
-function checkLogin(username, password)
+function checkLogin(username, password, callback)
 {
-    var md5 = crypto.createHash('md5');
-    md5.update(password);
+    log.debug("Login of user: " + username);
 
-    log.debug("Login of user: " + username + ", passwordhash: " + md5.digest('hex'));
+    var client = net.createConnection({path: '/var/run/courier/authdaemon/socket'});
 
-    return true;
+    client.on("connect", function() {
+        //console.log('connect');
+        var payload = 'service\nlogin\n' + username + '\n' + password;
+        client.write('AUTH ' + payload.length + '\n' + payload);
+    });
+
+    var response = "";
+
+    client.on("data", function(data) {
+        //console.log('data: ' + data);
+        response += data.toString();
+    });
+
+    client.on('end', function() {
+        var result = response.indexOf('FAIL', 0);
+
+        //console.log(result);
+
+        callback(result < 0);
+    });
 }
 
 // Listen on port 8888, IP defaults to 127.0.0.1
