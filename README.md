@@ -225,6 +225,12 @@ All parameters which can be configured right now are in the file *config.js*. Th
 But **Fennel** is not ready production anyway. And you are welcome to help out in adding parameters and configuration
 options.
 
+### auth_method ###
+
+The authentication method to use to authenticate users. Supported methods so far:
+
+- courier: use a local courier authdaemon socket. You will need to fill in this config option as well: auth_method_courier_socket
+- htaccess: use an htaccess file to authenticate the users. You will need to fill in this o^tion as well: auth_method_htaccess_file
 
 ## How to run ##
 

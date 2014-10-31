@@ -36,6 +36,11 @@ var config =
     port: 8888,
     ip: '127.0.0.1',
 
+    // authentication methods so far: courier, htaccess
+    auth_method: 'htaccess',
+    auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
+    auth_method_htaccess_file: 'demouser.htaccess',
+
     db_name: 'fennel',
     db_uid: 'uid',
     db_pwd: 'pwd',

@@ -29,6 +29,7 @@
  **
 -----------------------------------------------------------------------------*/
 var config = require('./config').config;
+var authlib = require('./libs/authentication');
 var http = require('http');
 var url = require('url');
 var log = require('./libs/log').log;
@@ -38,44 +39,16 @@ var handler = require('./libs/requesthandler');
 var net = require('net');
 
 var reqlib = require('./libs/request');
-var auth = require('http-auth');
+var httpauth = require('http-auth');
 
-var basic = auth.basic(
+var basic = httpauth.basic(
     {
         realm: "Fennel"
     }, function (username, password, callback)
     {
-        checkLogin(username, password, callback);
+        authlib.checkLogin(username, password, callback);
     }
 );
-
-function checkLogin(username, password, callback)
-{
-    log.debug("Login of user: " + username);
-
-    var client = net.createConnection({path: '/var/run/courier/authdaemon/socket'});
-
-    client.on("connect", function() {
-        //console.log('connect');
-        var payload = 'service\nlogin\n' + username + '\n' + password;
-        client.write('AUTH ' + payload.length + '\n' + payload);
-    });
-
-    var response = "";
-
-    client.on("data", function(data) {
-        //console.log('data: ' + data);
-        response += data.toString();
-    });
-
-    client.on('end', function() {
-        var result = response.indexOf('FAIL', 0);
-
-        //console.log(result);
-
-        callback(result < 0);
-    });
-}
 
 // Listen on port 8888, IP defaults to 127.0.0.1
 var server = http.createServer(basic, function (req, res)
