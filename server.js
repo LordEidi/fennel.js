@@ -87,6 +87,18 @@ var server = http.createServer(basic, function (req, res)
                     });
                 break;
 
+            // clients which do not call the .well-known URL call the root directory
+            // these clients should be redirected to the principal URL as well...(?)
+            case '':
+                log.debug("Called the root. Redirecting to /p/");
+
+                res.writeHead(302,
+                    {
+                        'Location': '/p/'
+                        //add other headers here...?
+                    });
+                break;
+
             case 'p':
                 handler.handlePrincipal(request);
                 break;
@@ -97,10 +109,6 @@ var server = http.createServer(basic, function (req, res)
 
             case 'card':
                 handler.handleCard(request);
-                break;
-
-            case '':
-                handler.handleCalendar(request);
                 break;
 
             default:

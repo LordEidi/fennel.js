@@ -55,9 +55,7 @@ function checkHtaccess(username, password, callback)
     for (var i in lines)
     {
         var line = lines[i];
-
-        log.debug("Read line from htaccess file: " + line);
-
+        //log.debug("Read line from htaccess file: " + line);
         if(line.length > 0)
         {
             var ret = processLine(line);

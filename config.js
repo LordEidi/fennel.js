@@ -33,6 +33,9 @@
 
 var config =
 {
+    // server specific configuration
+    // please use a proxy in front of fennel to support TLS
+    // we suggest you use nginx as the TLS endpoint
     port: 8888,
     ip: '127.0.0.1',
 
@@ -41,6 +44,7 @@ var config =
     auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
     auth_method_htaccess_file: 'demouser.htaccess',
 
+    // db specific configuration. you can use whatever sequelize supports.
     db_name: 'fennel',
     db_uid: 'uid',
     db_pwd: 'pwd',
