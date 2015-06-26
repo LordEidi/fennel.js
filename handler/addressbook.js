@@ -78,17 +78,17 @@ function propfind(request)
 
         // check out if we already have a record for the default addressbook
         // if not, lets create it, otherwise let's return its values...
-        ADB.findOrCreate({ownerId: username, name: defaults.name}, defaults).success(function(adb, created)
+        ADB.findOrCreate({ownerId: username, name: defaults.name}, defaults).then(function(adb, created)
         {
             VCARD.findAndCountAll(
                 { where: {addressbookId: adb.pkey}}
-            ).success(function(rsVCARDS)
+            ).then(function(rsVCARDS)
                 {
                     response += returnPropfindProps(request, childs, adb, rsVCARDS);
 
                     if(created)
                     {
-                        adb.save().success(function()
+                        adb.save().then(function()
                         {
                             log.warn('adb saved');
                         });
@@ -110,11 +110,11 @@ function propfind(request)
 
         // check out if we already have a record for the default addressbook
         // if not, lets create it, otherwise let's return its values...
-        ADB.find({ where: {ownerId: username, name: adbName} }).success(function(adb)
+        ADB.find({ where: {ownerId: username, name: adbName} }).then(function(adb)
         {
             VCARD.findAndCountAll(
                 { where: {addressbookId: adb.pkey}}
-            ).success(function(rsVCARDS)
+            ).then(function(rsVCARDS)
                 {
                     response += returnPropfindProps(request, childs, adb, rsVCARDS);
 
@@ -376,7 +376,7 @@ function del(request)
     {
         var calendarId = request.getPathElement(3);
 
-        CAL.find({ where: {pkey: calendarId} }).success(function(cal)
+        CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
             {
@@ -384,7 +384,7 @@ function del(request)
             }
             else
             {
-                cal.destroy().success(function()
+                cal.destroy().then(function()
                 {
                     log.debug('calendar deleted');
                 })
@@ -397,7 +397,7 @@ function del(request)
     {
         var ics_id = request.getFilenameFromPath(true);
 
-        ICS.find( { where: {pkey: ics_id}}).success(function(ics)
+        ICS.find( { where: {pkey: ics_id}}).then(function(ics)
         {
             if(ics === null)
             {
@@ -405,7 +405,7 @@ function del(request)
             }
             else
             {
-                ics.destroy().success(function()
+                ics.destroy().then(function()
                 {
                     log.debug('ics deleted');
                 })
@@ -427,7 +427,7 @@ function gett(request)
     request.dontCloseResAutomatically();
 
     var vcardId = request.getFilenameFromPath(true);
-    VCARD.find({ where: {pkey: vcardId} }).success(function(vcard)
+    VCARD.find({ where: {pkey: vcardId} }).then(function(vcard)
     {
         if(vcard === null)
         {
@@ -468,7 +468,7 @@ function put(request)
 
     // check out if we already have a record for the default addressbook
     // if not, lets create it, otherwise let's return its values...
-    ADB.find({ where: {ownerId: username, name: adbName} }).success(function(adb)
+    ADB.find({ where: {ownerId: username, name: adbName} }).then(function(adb)
     {
         VCARD.findOrCreate({ pkey: vcardId },
             {
@@ -476,7 +476,7 @@ function put(request)
                 content: body,
                 ownerId: request.getUser().getUserName(),
                 is_group: isGroup
-            }).success(function(vcard, created)
+            }).then(function(vcard, created)
             {
                 if(created)
                 {
@@ -489,17 +489,17 @@ function put(request)
                     log.debug('Loaded VCARD: ' + JSON.stringify(vcard, null, 4));
                 }
 
-                vcard.save().success(function()
+                vcard.save().then(function()
                 {
                     log.info('vcard updated');
 
                     // update addressbook collection
                     /*
-                    ADB.find({ where: {pkey: addressbookId} } ).success(function(cal)
+                    ADB.find({ where: {pkey: addressbookId} } ).then(function(cal)
                     {
                         if(cal !== null && cal !== undefined)
                         {
-                            cal.increment('synctoken', { by: 1 }).success(function()
+                            cal.increment('synctoken', { by: 1 }).then(function()
                             {
                                 log.info('synctoken on cal updated');
                             });
@@ -547,7 +547,7 @@ function move(request)
         var aURL = destination.split("/");
         var newCal = aURL[aURL.length - 2];
 
-        ICS.find({ where: {pkey: ics_id} }).success(function(ics)
+        ICS.find({ where: {pkey: ics_id} }).then(function(ics)
         {
             if(ics === null)
             {
@@ -556,7 +556,7 @@ function move(request)
             else
             {
                 ics.calendarId = newCal;
-                ics.save().success(function()
+                ics.save().then(function()
                 {
                     log.warn('ics updated');
                 });
@@ -712,7 +712,7 @@ function parseHrefToVCARDId(href)
 
 function handleReportHrefs(request, arrVCARDIds)
 {
-    VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).success(function(result)
+    VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).then(function(result)
     {
         var response = "";
 
@@ -792,7 +792,7 @@ function proppatch(request)
     if(isRoot)
     {
         var calendarId = request.getLastPathElement(false);
-        CAL.find({ where: {pkey: calendarId} }).success(function(cal)
+        CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
             {
@@ -878,7 +878,7 @@ function proppatch(request)
                     }
                 }
 
-                cal.save().success(function()
+                cal.save().then(function()
                 {
                     log.warn('cal saved');
                 });

@@ -11,7 +11,7 @@
     "carddav",
     "lightweight"
   ],
-  "license": "GPLv3",
+  "license": "GPL-3.0",
   "version": "0.2.0-beta",
   "main": "server.js",
   "readmeFilename": "README.md",
@@ -24,16 +24,14 @@
     "url": "https://github.com/LordEidi/fennel.git"
   },
   "dependencies": {
-    "htdigest": "~2.0.2",
+    "htdigest": "^2.0.2",
     "htpasswd": "^2.1.2",
-    "http-auth": "~2.1.5",
-    "libxmljs": "~0.8.1",
-    "log4js": "~0.6.9",
-    "node-regexp": "~0.1.1",
-    "nodemon": "~1.0.14",
-    "sequelize": "~1.7.0-rc4",
-    "sequelize-sqlite": "~2.0.0-beta.2",
-    "sqlite3": "~2.2.0",
-    "xml2js": "~0.4.1"
+    "http-auth": "^2.1.9",
+    "libxmljs": "^0.14.2",
+    "log4js": "^0.6.9",
+    "node-regexp": "^0.1.1",
+    "sequelize": "^3.3.2",
+    "sqlite3": "^3.0.8",
+    "xml2js": "^0.4.9"
   }
 }

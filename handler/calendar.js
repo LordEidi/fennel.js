@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-15 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -59,7 +59,7 @@ function del(request)
     {
         var calendarId = request.getPathElement(3);
 
-        CAL.find({ where: {pkey: calendarId} }).success(function(cal)
+        CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
             {
@@ -67,7 +67,7 @@ function del(request)
             }
             else
             {
-                cal.destroy().success(function()
+                cal.destroy().then(function()
                 {
                     log.debug('calendar deleted');
                 })
@@ -80,7 +80,7 @@ function del(request)
     {
         var ics_id = request.getFilenameFromPath(true);
 
-        ICS.find( { where: {pkey: ics_id}}).success(function(ics)
+        ICS.find( { where: {pkey: ics_id}}).then(function(ics)
         {
             if(ics === null)
             {
@@ -88,7 +88,7 @@ function del(request)
             }
             else
             {
-                ics.destroy().success(function()
+                ics.destroy().then(function()
                 {
                     log.debug('ics deleted');
                 })
@@ -110,7 +110,7 @@ function gett(request)
     request.dontCloseResAutomatically();
 
     var ics_id = request.getFilenameFromPath(true);
-    ICS.find( { where: {pkey: ics_id}}).success(function(ics)
+    ICS.find( { where: {pkey: ics_id}}).then(function(ics)
     {
         if(ics === null)
         {
@@ -141,7 +141,7 @@ function put(request)
         {
             calendarId: calendar,
             content: request.getBody()
-        }).success(function(ics, created)
+        }).then(function(ics, created)
         {
             if(created)
             {
@@ -153,16 +153,16 @@ function put(request)
                 log.debug('Loaded ICS: ' + JSON.stringify(ics, null, 4));
             }
 
-            ics.save().success(function()
+            ics.save().then(function()
             {
                 log.info('ics updated');
 
                 // update calendar collection
-                CAL.find({ where: {pkey: calendar} } ).success(function(cal)
+                CAL.find({ where: {pkey: calendar} } ).then(function(cal)
                 {
                     if(cal !== null && cal !== undefined)
                     {
-                        cal.increment('synctoken', { by: 1 }).success(function()
+                        cal.increment('synctoken', { by: 1 }).then(function()
                         {
                             log.info('synctoken on cal updated');
                         });
@@ -207,7 +207,7 @@ function move(request)
         var aURL = destination.split("/");
         var newCal = aURL[aURL.length - 2];
 
-        ICS.find({ where: {pkey: ics_id} }).success(function(ics)
+        ICS.find({ where: {pkey: ics_id} }).then(function(ics)
         {
             if(ics === null)
             {
@@ -216,7 +216,7 @@ function move(request)
             else
             {
                 ics.calendarId = newCal;
-                ics.save().success(function()
+                ics.save().then(function()
                 {
                     log.warn('ics updated');
                 });
@@ -326,7 +326,7 @@ function propfind(request)
             // then add info for all further known calendars of same user
             var query = { where: {owner: username}, order: [['order', 'ASC']] };
 
-            CAL.findAndCountAll({ where: {owner: username}, order: [['order', 'ASC']] }).success(function(result)
+            CAL.findAndCountAll({ where: {owner: username}, order: [['order', 'ASC']] }).then(function(result)
             {
                 for (var i=0; i < result.count; ++i)
                 {
@@ -368,7 +368,7 @@ function propfind(request)
         }
         else
         {
-            CAL.find({ where: {pkey: calendarId} }).success(function(cal)
+            CAL.find({ where: {pkey: calendarId} }).then(function(cal)
             {
                 if(cal === null)
                 {
@@ -833,7 +833,7 @@ function makeCalendar(request)
                 supported_cal_component: supported_cal_component,
                 colour: colour,
                 displayname: displayname
-            }).success(function(cal, created)
+            }).then(function(cal, created)
             {
                 if(created)
                 {
@@ -844,7 +844,7 @@ function makeCalendar(request)
                     log.debug('Loaded CAL: ' + JSON.stringify(cal, null, 4));
                 }
 
-                cal.save().success(function()
+                cal.save().then(function()
                 {
                     log.warn('cal saved');
                 });
@@ -913,11 +913,11 @@ function handleReportCalendarQuery(request)
 
     var calendarId = request.getPathElement(3);
 
-    CAL.find({ where: {pkey: calendarId} } ).success(function(cal)
+    CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
     {
         ICS.findAndCountAll(
                 { where: {calendarId: calendarId}}
-            ).success(function(result)
+            ).then(function(result)
             {
                 var body = request.getBody();
                 var xmlDoc = xml.parseXml(body);
@@ -1029,12 +1029,12 @@ function handleReportSyncCollection(request)
 
         var calendarId = request.getPathElement(3);
 
-        CAL.find({ where: {pkey: calendarId} } ).success(function(cal)
+        CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
         {
             ICS.findAndCountAll(
                 { where: {calendarId: calendarId}}
 //                { where: {updatedAt: { gte: cal.updatedAt}}}
-            ).success(function(result)
+            ).then(function(result)
             {
                 var response = "";
 
@@ -1175,7 +1175,7 @@ function parseHrefToIcsId(href)
 
 function handleReportHrefs(request, arrIcsIds)
 {
-    ICS.findAndCountAll( { where: {pkey: arrIcsIds}}).success(function(result)
+    ICS.findAndCountAll( { where: {pkey: arrIcsIds}}).then(function(result)
     {
         var response = "";
 
@@ -1253,7 +1253,7 @@ function proppatch(request)
     if(isRoot)
     {
         var calendarId = request.getLastPathElement(false);
-        CAL.find({ where: {pkey: calendarId} }).success(function(cal)
+        CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
             {
@@ -1339,7 +1339,7 @@ function proppatch(request)
                     }
                 }
 
-                cal.save().success(function()
+                cal.save().then(function()
                 {
                     log.warn('cal saved');
                 });

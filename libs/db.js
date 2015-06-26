@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-15 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -11,8 +11,7 @@
 var log = require('../libs/log').log;
 var config = require('../config').config;
 
-var Sequelize = require('sequelize-sqlite').sequelize;
-var sqlite    = require('sequelize-sqlite').sqlite;
+var Sequelize = require('sequelize');
 
 var sequelize = new Sequelize(config.db_name, config.db_uid, config.db_pwd, {
     dialect: config.db_dialect,
@@ -53,7 +52,7 @@ var ADDRESSBOOK = sequelize.define('ADB', {
     synctoken: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0}
 });
 
-sequelize.sync().success(function()
+sequelize.sync().then(function()
     {
         log.info("Database structure updated");
     }).error(function(error)
