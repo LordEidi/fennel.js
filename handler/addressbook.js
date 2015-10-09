@@ -62,12 +62,12 @@ function propfind(request)
 
     request.dontCloseResAutomatically();
 
+    var username = request.getUser().getUserName();
+
     // respond for root and every addressbook
     if(isRoot === true)
     {
         response += returnPropfindRootProps(request, childs);
-
-        var username = request.getUser().getUserName();
 
         var defaults = {
             pkey: generateUUIDv4(),
@@ -78,7 +78,7 @@ function propfind(request)
 
         // check out if we already have a record for the default addressbook
         // if not, lets create it, otherwise let's return its values...
-        ADB.findOrCreate({ownerId: username, name: defaults.name}, defaults).then(function(adb, created)
+        ADB.findOrCreate({where: {ownerId: username, name: defaults.name},  defaults: defaults }).spread(function(adb, created)
         {
             VCARD.findAndCountAll(
                 { where: {addressbookId: adb.pkey}}
@@ -104,8 +104,6 @@ function propfind(request)
     }
     else
     {
-        var username = request.getUser().getUserName();
-
         var adbName = request.getPathElement(3);
 
         // check out if we already have a record for the default addressbook
@@ -470,13 +468,16 @@ function put(request)
     // if not, lets create it, otherwise let's return its values...
     ADB.find({ where: {ownerId: username, name: adbName} }).then(function(adb)
     {
-        VCARD.findOrCreate({ pkey: vcardId },
-            {
-                addressbookId: adb.pkey,
-                content: body,
-                ownerId: request.getUser().getUserName(),
-                is_group: isGroup
-            }).then(function(vcard, created)
+        var defaults = {
+            addressbookId: adb.pkey,
+            content: body,
+            ownerId: request.getUser().getUserName(),
+            is_group: isGroup
+        };
+
+        // check out if we already have a record for the default addressbook
+        // if not, lets create it, otherwise let's return its values...
+        VCARD.findOrCreate({where: { pkey: vcardId },  defaults: defaults }).spread(function(vcard, created)
             {
                 if(created)
                 {
