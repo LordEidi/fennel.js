@@ -137,11 +137,12 @@ function put(request)
     var ics_id = request.getFilenameFromPath(true);
     var calendar = request.getLastPathElement();
 
-    ICS.findOrCreate({ pkey: ics_id },
-        {
-            calendarId: calendar,
-            content: request.getBody()
-        }).then(function(ics, created)
+    var defaults = {
+        calendarId: calendar,
+        content: request.getBody()
+    };
+
+    ICS.findOrCreate({ where: {pkey: ics_id}, defaults: defaults}).spread(function(ics, created)
         {
             if(created)
             {
@@ -158,7 +159,7 @@ function put(request)
                 log.info('ics updated');
 
                 // update calendar collection
-                CAL.find({ where: {pkey: calendar} } ).then(function(cal)
+                CAL.findOne({ where: {pkey: calendar} } ).then(function(cal)
                 {
                     if(cal !== null && cal !== undefined)
                     {
@@ -824,16 +825,17 @@ function makeCalendar(request)
         //node.childNodes()[1].text()
         var filename = request.getLastPathElement(true);
 
-        CAL.findOrCreate({ pkey: filename },
-            {
-                owner: request.getUser().getUserName(),
-                timezone: timezone,
-                order: order,
-                free_busy_set: free_busy_set,
-                supported_cal_component: supported_cal_component,
-                colour: colour,
-                displayname: displayname
-            }).then(function(cal, created)
+        var defaults = {
+            owner: request.getUser().getUserName(),
+            timezone: timezone,
+            order: order,
+            free_busy_set: free_busy_set,
+            supported_cal_component: supported_cal_component,
+            colour: colour,
+            displayname: displayname
+        };
+
+        CAL.findOrCreate({ where: {pkey: filename}, defaults: defaults }).spread(function(cal, created)
             {
                 if(created)
                 {

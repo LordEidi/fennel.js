@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-15 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -64,10 +64,6 @@ function handleCalendar(request)
 
         case 'REPORT':
             cal.report(request);
-            break;
-
-        case 'MKCOL':
-            cal.makeCalendar(request);
             break;
 
         case 'MKCALENDAR':
