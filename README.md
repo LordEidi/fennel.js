@@ -3,7 +3,7 @@ Fennel
 
 ![Fennel](https://raw.github.com/LordEidi/fennel/master/fennel_logo.png)
 
-**Fennel** (c) 2014 by [SwordLord - the coding crew](http://www.swordlord.com/)
+**Fennel** (c) 2014-15 by [SwordLord - the coding crew](http://www.swordlord.com/)
 
 ## Introduction ##
 
@@ -44,34 +44,20 @@ First of all, you need a Node.js installation.
 
 Make sure that you have this line in your /etc/apt/sources.list file:
 
-    deb http://YOURMIRROR.debian.org/debian wheezy-backports main
+    deb http://YOURMIRROR.debian.org/debian jessie main
 
 and then run:
 
-    sudo apt-get install nodejs nodejs-legacy
-    sudo ln -s /usr/lib/nodejs/ /usr/lib/node
-
-then install the node package manager from source:
-
-    curl https://www.npmjs.org/install.sh | sudo sh
+    sudo apt-get install nodejs nodejs-legacy npm
+    // eventually the next line as well
+    // sudo ln -s /usr/lib/nodejs/ /usr/lib/node
 
 ###nodejs on OSX with homebrew###
 
-    brew install nodejs
+    brew install node
+    brew install npm
 
 ###Installation of **Fennel**###
-
-If you run Debian stable, then this is a bit of a hassle. If you run Debian stable and only then (and know what you do)
-update your glibc first to Debian testing. To do so, add this line to your /etc/apt/sources.list file (replacing the xxx part):
-
-    deb http://ftp.xxx.debian.org/debian/ testing main
-
-And then run the update:
-
-    sudo update
-    sudo apt-get -t testing install libc6-dev
-
-Remove the testing line from your /etc/apt/sources.list file afterwards. Now follow the "normal" installation of **Fennel**.
 
 If you want to run **Fennel** under a specific user (node), do this:
 
@@ -81,97 +67,38 @@ If you want to run **Fennel** under a specific user (node), do this:
     mkdir fennel
     cd fennel
 
-Go into the directory where you want to run your copy of **Fennel** and install with the help of npm.
+Go into the directory where you want to run your copy of **Fennel** and get the latest and greatest:
 
     cd /home/node/fennel
-    npm install fennel@beta
+    git clone https://github.com/LordEidi/fennel.git
+
+And then with the magic of npm get the required libraries
+
+    npm install
 
 If everything worked according to plan, you should now have a new installation of the latest **Fennel**.
 
-Now we want to make sure that **Fennel** runs forever. First install this script globally:
+###Use supervisord to run **Fennel** as a service###
 
-    npm -g install forever
+Now we want to make sure that **Fennel** runs forever. First install the required software:
 
-Then write the following lines into this file: /etc/init.d/fennel.
+    sudo apt-get install supervisor
 
-    #!/bin/bash
-    #
-    # initd for the fennel app
-    # /etc/init.d/fennel
+Then copy the file utilities/fennel_supervisor.conf into your local supervisor configuration directory. This is usually done like this:
+ 
+    cp utilities/fennel_supervisor.conf /etc/supervisor/conf.d/fennel.conf 
+    
+Make sure you change the configuration to your local setup.
 
-    pidFile=fennel.pid
-    logFile=fennel_forever.log
-    sourceDir=/home/node/fennel/node_modules/fennel
-    rootPath=/home/node/fennel
-    nodeApp=server.js
-
-    start() {
-       echo "Starting $nodeApp"
-
-       # This is found in the library referenced at the top of the script
-       start_daemon
-
-       forever start --sourceDir=$sourceDir -p $rootPath --pidFile $pidFile -l $logFile -a -d $nodeApp
-       RETVAL=$?
-    }
-
-    restart() {
-       echo -n "Restarting $nodeApp"
-       forever restart $nodeApp
-       RETVAL=$?
-    }
-
-    stop() {
-       echo -n "Shutting down $nodeApp"
-       forever stop $nodeApp
-       RETVAL=$?
-    }
-
-    status() {
-       echo -n "Status $nodeApp"
-       forever list
-       RETVAL=$?
-    }
-
-    case "$1" in
-       start)
-            start
-            ;;
-        stop)
-            stop
-            ;;
-       status)
-            status
-           ;;
-       restart)
-       	restart
-            ;;
-    	*)
-           echo "Usage:  {start|stop|status|restart}"
-           exit 1
-            ;;
-    esac
-    exit $RETVAL
-
-And make sure it is executable:
-
-    sudo chmod 755 /etc/init.d/fennel
-
-And make it come up automatically when booting the server:
-
-    update-rc.d fennel defaults
-
-Or stop the script from coming up with this command:
-
-    update-rc.d -f fennel remove
+###How to set up transport security###
 
 Since **Fennel** does not bring it's own crypto, you may need to install a TLS server in front of **Fennel**. You can do so
 with nginx, which is a lightweight http server and proxy.
 
-First prepare your /etc/apt/sources.list file
+First prepare your /etc/apt/sources.list file (or just install the standard Debian package, your choice):
 
-    deb http://nginx.org/packages/debian/ wheezy nginx
-    deb-src http://nginx.org/packages/debian/ wheezy nginx
+    deb http://nginx.org/packages/debian/ jessie nginx
+    deb-src http://nginx.org/packages/debian/ jessie nginx
 
 Update apt-cache and install nginx to your system.
 
@@ -209,10 +136,19 @@ Now configure a proxy configuration so that your instance of nginx will serve / 
         ssl_certificate  /etc/nginx/certs/yourdomain.tld.pem;
         ssl_certificate_key  /etc/nginx/certs/yourdomain.tld.pem;
         ssl_session_timeout  5m;
-        ssl_protocols  TLSv1;
-        ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+EXP;
-        ssl_prefer_server_ciphers   on;
+
+        # modern configuration. tweak to your needs.
+        ssl_protocols TLSv1.1 TLSv1.2;
+        ssl_ciphers 'ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!3DES:!MD5:!PSK';
+        ssl_prefer_server_ciphers on;
+    
+        # HSTS (ngx_http_headers_module is required) (15768000 seconds = 6 months)
+        add_header Strict-Transport-Security max-age=15768000;
     }
+
+Please check this site for updates on what TLS settings currently make sense:
+
+    https://mozilla.github.io/server-side-tls/ssl-config-generator/
 
 Now run or reset your nginx and start your instance of **Fennel**.
 
