@@ -2,9 +2,11 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-15 by
+ ** Copyright 2015 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
+ **
+ ** This file is part of the test suite
  **
  ** This program is free software; you can redistribute it and/or modify it
  ** under the terms of the GNU General Public License as published by the Free
@@ -28,35 +30,37 @@
  ** $Id:
  **
  -----------------------------------------------------------------------------*/
+var test = require('tape');
+var request = require('request');
 
-// Place all your configuration options here
+var config = require('../config').config;
 
-var config =
-{
-    // server specific configuration
-    // please use a proxy in front of fennel to support TLS
-    // we suggest you use nginx as the TLS endpoint
-    port: 8888,
-    ip: '127.0.0.1',
+var username = config.test_user_name;
+var password = config.test_user_pwd;
 
-    // authentication methods so far: courier, htaccess
-    auth_method: 'htaccess',
-    auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
-    auth_method_htaccess_file: 'demouser.htaccess',
+test('Redirect to /p/ when hitting /', function (t) {
 
-    // db specific configuration. you can use whatever sequelize supports.
-    db_name: 'fennel',
-    db_uid: 'uid',
-    db_pwd: 'pwd',
-    db_dialect: 'sqlite',
-    db_logging: true,
-    db_storage: 'fennel.sqlite',
+    t.plan(2);
 
-    test_user_name: 'demo',
-    test_user_pwd: 'demo'
-};
+    var options = {
+        method: 'GET',
+        uri: "http://" + config.ip + ":" + config.port + "/",
+        auth: {
+            'user': username,
+            'pass': password,
+            'sendImmediately': true
+        } ,
+        followRedirect: false
+    }
 
-// Exporting.
-module.exports = {
-    config: config
-};
+    request(options, function (error, response, body) {
+
+        if (!error) {
+            t.equal(response.statusCode, 302, "StatusCode matches");
+            t.equal(response.headers.location, "/p/", "Redirection matches");
+        }
+        else {
+            t.fail();
+        }
+    });
+});

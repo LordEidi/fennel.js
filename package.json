@@ -19,7 +19,7 @@
     "url": "https://github.com/LordEidi/fennel/issues"
   },
   "scripts": {
-    "test": "node test/*.js | faucet"
+    "test": "tape test/*.js | faucet"
   },
   "homepage": "https://github.com/LordEidi/fennel",
   "repository": {
@@ -38,6 +38,7 @@
     "xml2js": "^0.4.9"
   },
   "devDependencies": {
-    "tape": "^4.0.1"
+    "tape": "^4.0.1",
+    "request": "^2.65.0"
   }
 }
