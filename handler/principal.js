@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-15 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -180,7 +180,6 @@ function options(request)
     rh.setDAVHeaders(request);
     rh.setAllowHeader(request);
 
-    var res = request.getRes();
     res.writeHead(200);
 }
 
