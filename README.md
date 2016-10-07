@@ -174,6 +174,15 @@ Point your CalDAV and CardDAV client to the root of **Fennel**. All the rest sho
 *./well-known* URLs and the chat between your client and **Fennel**.
 
 
+## Test cases ##
+
+There are a few test cases to check the working of **Fennel**. Make sure to
+
+- run "npm install -g tape" to install needed dependencies.
+- run an instance of **Fennel**.
+- check your configuration, especially the test user and password.
+
+
 ## Contribution ##
 
 If you happen to know how to write JavaScript, documentation or can help out with something else, drop us a note at *contact at swordlord dot com*. As more
@@ -183,6 +192,8 @@ helping hands we have, as quicker this server gets up and feature complete.
 ## Dependencies ##
 
 For now, have a look at the package.json file.
+
+If you run the test cases, make sure to first run "npm install -g tape".
 
 
 ## License ##
