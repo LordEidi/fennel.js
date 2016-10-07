@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -11,7 +11,8 @@
 var log = require('../libs/log').log;
 var config = require('../config').config;
 
-var htpasswd = require('htpasswd');
+var httpauth = require('http-auth');
+
 var fs = require('fs');
 var path = require('path');
 
@@ -52,6 +53,9 @@ function checkHtaccess(username, password, callback)
     var strHTAccess = fs.readFileSync(fHTAccess, 'utf8');
     var lines = strHTAccess.replace(/\r\n/g, "\n").split("\n");
 
+    // not cool, but works for now...
+    var basicauth = httpauth.basic({},{});
+
     for (var i in lines)
     {
         var line = lines[i];
@@ -61,7 +65,7 @@ function checkHtaccess(username, password, callback)
             var ret = processLine(line);
             if(ret.username == username)
             {
-                if(htpasswd.verify(ret.passwordhash, password))
+                if(basicauth.validate(ret.passwordhash, password))
                 {
                     log.info("User logged in: " + username);
                     callback(true);
