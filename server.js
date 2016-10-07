@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-15 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -38,6 +38,9 @@ var handler = require('./libs/requesthandler');
 var reqlib = require('./libs/request');
 var httpauth = require('http-auth');
 
+var crossroads = require('crossroads');
+crossroads.ignoreState = true;
+
 var basic = httpauth.basic(
     {
         realm: "Fennel"
@@ -46,6 +49,61 @@ var basic = httpauth.basic(
         authlib.checkLogin(username, password, callback);
     }
 );
+
+function onBypass(req, path)
+{
+    log.info('URL unknown: ' + path);
+
+    var res = req.getRes();
+
+    res.writeHead(500);
+    res.write(req.url + " is not known");
+    res.end();
+}
+
+function onHitRoot(req)
+{
+    log.debug("Called the root. Redirecting to /p/");
+
+    req.getRes().writeHead(302,
+        {
+            'Location': '/p/'
+            //add other headers here...?
+        });
+}
+
+function onHitWellKnown(req, params)
+{
+    log.debug("Called .well-known URL for " + params + ". Redirecting to /p/");
+
+    req.getRes().writeHead(302,
+        {
+            'Location': '/p/'
+            //add other headers here...?
+        });
+}
+
+function onHitPrincipal(req, params)
+{
+    handler.handlePrincipal(req);
+}
+
+function onHitCalendar(req, params)
+{
+    handler.handleCalendar(req);
+}
+
+function onHitCard(req, params)
+{
+    handler.handleCard(req);
+}
+
+crossroads.addRoute('/p/{params*}', onHitPrincipal);
+crossroads.addRoute('/cal/{params*}', onHitCalendar);
+crossroads.addRoute('/card/{params*}', onHitCard);
+crossroads.addRoute('/.well-known/:params*:', onHitWellKnown);
+crossroads.addRoute('/', onHitRoot);
+crossroads.bypassed.add(onBypass);
 
 // Listen on port 8888, IP defaults to 127.0.0.1
 var server = http.createServer(basic, function (req, res)
@@ -64,56 +122,9 @@ var server = http.createServer(basic, function (req, res)
     {
         var request = new reqlib.request(req, res, body);
 
-        var pathname = url.parse(req.url).pathname;
-
-        if(pathname.charAt(0) == '/')
-        {
-            pathname = pathname.substr(1);
-        }
-
-        var aUrl = pathname.split("/");
-        switch(aUrl[0])
-        {
-            case '.well-known':
-                log.debug("Called .well-known URL for " + aUrl[1] + ". Redirecting to /p/");
-
-                res.writeHead(302,
-                    {
-                        'Location': '/p/'
-                        //add other headers here...?
-                    });
-                break;
-
-            // clients which do not call the .well-known URL call the root directory
-            // these clients should be redirected to the principal URL as well...(?)
-            case '':
-                log.debug("Called the root. Redirecting to /p/");
-
-                res.writeHead(302,
-                    {
-                        'Location': '/p/'
-                        //add other headers here...?
-                    });
-                break;
-
-            case 'p':
-                handler.handlePrincipal(request);
-                break;
-
-            case 'cal':
-                handler.handleCalendar(request);
-                break;
-
-            case 'card':
-                handler.handleCard(request);
-                break;
-
-            default:
-                log.info("URL unknown: " + req.url);
-                res.writeHead(500);
-                res.write(req.url + " is not known");
-                break;
-        }
+        var sUrl = url.parse(req.url).pathname;
+        log.info("URL requested: " + sUrl);
+        crossroads.parse(sUrl, [request]);
 
         request.closeResponseAutomatically();
     });
@@ -124,6 +135,11 @@ server.listen(config.port);
 server.on('error', function (e)
 {
     log.debug("Error: " + e);
+});
+
+process.on('uncaughtException', function(err)
+{
+    console.log('Caught exception: ' + err);
 });
 
 // Put a friendly message on the terminal
