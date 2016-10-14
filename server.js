@@ -68,7 +68,7 @@ function onHitRoot(req)
     req.getRes().writeHead(302,
         {
             'Location': '/p/'
-            //add other headers here...?
+            //todo: add other headers here...?
         });
 }
 
@@ -79,28 +79,38 @@ function onHitWellKnown(req, params)
     req.getRes().writeHead(302,
         {
             'Location': '/p/'
-            //add other headers here...?
+            //todo: add other headers here...?
         });
 }
 
 function onHitPrincipal(req, params)
 {
+    req.params = params;
+
     handler.handlePrincipal(req);
 }
 
-function onHitCalendar(req, params)
+function onHitCalendar(req, username, cal, params)
 {
+    req.username = username;
+    req.cal = cal;
+    req.params = params;
+
     handler.handleCalendar(req);
 }
 
-function onHitCard(req, params)
+function onHitCard(req, username, card, params)
 {
+    req.username = username;
+    req.card = card;
+    req.params = params;
+
     handler.handleCard(req);
 }
 
-crossroads.addRoute('/p/{params*}', onHitPrincipal);
-crossroads.addRoute('/cal/{params*}', onHitCalendar);
-crossroads.addRoute('/card/{params*}', onHitCard);
+crossroads.addRoute('/p/:params*:', onHitPrincipal);
+crossroads.addRoute('/cal/:username:/:cal:/:params*:', onHitCalendar);
+crossroads.addRoute('/card/:username:/:card:/:params*:', onHitCard);
 crossroads.addRoute('/.well-known/:params*:', onHitWellKnown);
 crossroads.addRoute('/', onHitRoot);
 crossroads.bypassed.add(onBypass);

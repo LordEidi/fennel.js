@@ -453,7 +453,7 @@ function put(request)
     log.debug("addressbook.put called");
 
     var vcardId = request.getFilenameFromPath(true);
-    var addressbookId = request.getLastPathElement();
+    var addressbookId = request.getCardIdFromURL();
 
     var body = request.getBody();
 

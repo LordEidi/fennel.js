@@ -135,7 +135,7 @@ function put(request)
     log.debug("calendar.put called");
 
     var ics_id = request.getFilenameFromPath(true);
-    var calendar = request.getLastPathElement();
+    var calendar = request.getCalIdFromURL();
 
     var defaults = {
         calendarId: calendar,
@@ -150,6 +150,19 @@ function put(request)
             }
             else
             {
+                // TODO: check for  'If-None-Match': '*' Header and reply with a Status Code 412 and an error
+                // since caller does not want to replace / change the ICS but only create new records
+                /*
+                    <?xml version='1.0' encoding='utf-8'?>
+                    <d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
+                      <s:sabredav-version>3.1.0-alpha2</s:sabredav-version>
+                      <s:exception>Sabre\DAV\Exception\PreconditionFailed</s:exception>
+                      <s:message>An If-None-Match header was specified, but the ETag matched (or * was
+                    specified).</s:message>
+                      <s:header>If-None-Match</s:header>
+                    </d:error>
+                 */
+
                 ics.content = request.getBody();
                 log.debug('Loaded ICS: ' + JSON.stringify(ics, null, 4));
             }
@@ -189,7 +202,7 @@ function move(request)
     rh.setStandardHeaders(request);
 
     var ics_id = request.getFilenameFromPath(true);
-    var calendar = request.getLastPathElement();
+    var calendar = request.getCalIdFromURL();
 
     var destination = "";
 
@@ -348,7 +361,7 @@ function propfind(request)
     else
     {
         // otherwise get that specific calendar information
-        var calendarId = request.getPathElement(3);
+        var calendarId = request.getCalIdFromURL();
         if(calendarId === "notifications")
         {
 //            response += returnNotifications(request);
@@ -823,7 +836,7 @@ function makeCalendar(request)
 
         //node.childNodes()[1].attr("symbolic-color").value()
         //node.childNodes()[1].text()
-        var filename = request.getLastPathElement(true);
+        var filename = request.getCalIdFromURL();
 
         var defaults = {
             owner: request.getUser().getUserName(),
@@ -913,7 +926,7 @@ function handleReportCalendarQuery(request)
 {
     request.dontCloseResAutomatically();
 
-    var calendarId = request.getPathElement(3);
+    var calendarId = request.getCalIdFromURL();
 
     CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
     {
@@ -1254,7 +1267,7 @@ function proppatch(request)
 
     if(isRoot)
     {
-        var calendarId = request.getLastPathElement(false);
+        var calendarId = request.getCalIdFromURL();
         CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)

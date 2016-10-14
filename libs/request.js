@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -104,7 +104,7 @@ request.prototype.getFilenameFromPath = function(removeEnding)
     var aUrl = url.parse(this.req.url).pathname.split("/");
     if(aUrl.length <= 0)
     {
-        log.warn('Something evil happened in calendar.put!');
+        log.warn('Something evil happened in request.getFilenameFromPath');
         return undefined;
     }
 
@@ -123,7 +123,7 @@ request.prototype.getLastPathElement = function()
     var aUrl = url.parse(this.req.url).pathname.split("/");
     if(aUrl.length <= 0)
     {
-        log.warn('Something evil happened in calendar.put!');
+        log.warn('Something evil happened in request.getLastPathElement');
         return undefined;
     }
 
@@ -135,7 +135,7 @@ request.prototype.getPathElement = function(position)
     var aUrl = url.parse(this.req.url).pathname.split("/");
     if(aUrl.length <= 0)
     {
-        log.warn('Something evil happened in calendar.put!');
+        log.warn('Something evil happened in request.getPathElement');
         return undefined;
     }
 
@@ -151,4 +151,24 @@ request.prototype.getUrlElementSize = function()
 request.prototype.stringEndsWith = function(str, suffix)
 {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
+};
+
+request.prototype.getHeader = function(header)
+{
+    return this.req.getHeader(header);
+};
+
+request.prototype.getCalIdFromURL = function()
+{
+    return this.cal;
+};
+
+request.prototype.getCardIdFromURL = function()
+{
+    return this.card;
+};
+
+request.prototype.hasHeader = function(header)
+{
+    return (this.getHeader());
 };
