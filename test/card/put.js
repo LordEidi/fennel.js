@@ -33,34 +33,44 @@
 var test = require('tape');
 var request = require('request');
 
-var config = require('../config').config;
+var config = require('../../config').config;
 
 var username = config.test_user_name;
 var password = config.test_user_pwd;
 
-test('Redirect to /p/ when hitting /', function (t) {
+test('Calling PUT on cards', function (t) {
 
-    t.plan(2);
+    t.plan(1);
+
+    var payload = "BEGIN:VCARD\n\r";
+    payload += "VERSION:3.0\n\r";
+    payload += "PRODID:-//Apple Inc.//iOS 9.0.2//EN\n\r";
+    payload += "N:Www;Www;;;\n\r";
+    payload += "FN:Www Www\n\r";
+    payload += "ORG:company;\n\r";
+    payload += "REV:2015-10-16T13:00:28Z\n\r";
+    payload += "UID:E2D83EA7-9DA7-46F9-93EC-70F73BB1E4D1\n\r";
+    payload += "END:VCARD\n\r";
 
     var options = {
-        method: 'GET',
-        uri: "http://" + config.ip + ":" + config.port + "/",
+        method: 'PUT',
+        uri: "http://" + config.ip + ":" + config.port + "/card/" + username + "/default/7997A784-375D-4B42-8FAE-A9EAA3FB0DBF.vcf",
         auth: {
             'user': username,
             'pass': password,
             'sendImmediately': true
         } ,
+        body: payload,
         followRedirect: false
     }
 
     request(options, function (error, response, body) {
 
         if (!error) {
-            t.equal(response.statusCode, 302, "StatusCode matches");
-            t.equal(response.headers.location, "/p/", "Redirection matches");
+            t.equal(response.statusCode, 201, "StatusCode matches");
         }
         else {
-            t.fail();
+            t.fail(error);
         }
     });
 });

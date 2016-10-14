@@ -33,18 +33,18 @@
 var test = require('tape');
 var request = require('request');
 
-var config = require('../config').config;
+var config = require('../../config').config;
 
 var username = config.test_user_name;
 var password = config.test_user_pwd;
 
-test('Redirect to /p/ when hitting .well-known URL', function (t) {
+test('Redirect to /p/ when hitting /', function (t) {
 
     t.plan(2);
 
     var options = {
         method: 'GET',
-        uri: "http://" + config.ip + ":" + config.port + "/.well-known",
+        uri: "http://" + config.ip + ":" + config.port + "/",
         auth: {
             'user': username,
             'pass': password,
