@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-15 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -33,11 +33,15 @@
 
 var config =
 {
+    version_nr: '0.1.0',
+
     // server specific configuration
     // please use a proxy in front of fennel to support TLS
     // we suggest you use nginx as the TLS endpoint
     port: 8888,
+    //port: 80,
     ip: '127.0.0.1',
+    //ip: '0.0.0.0',
 
     // authentication methods so far: courier, htaccess
     auth_method: 'htaccess',
