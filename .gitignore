@@ -1,4 +1,5 @@
 *.txt
 *.sqlite
+*.flow
 utils/*
 .DS_Store

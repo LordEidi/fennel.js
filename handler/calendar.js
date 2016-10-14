@@ -902,7 +902,7 @@ function report(request)
     rh.setStandardHeaders(request);
 
     var res = request.getRes();
-    res.writeHead(200);
+    res.writeHead(207);
     res.write(xh.getXMLHead());
 
     var body = request.getBody();
