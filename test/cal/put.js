@@ -90,6 +90,9 @@ test('Calling PUT on calendar', function (t) {
             'sendImmediately': true
         } ,
         body: payload,
+        headers: {
+            'If-None-Match': '*'
+        },
         followRedirect: false
     }
 
