@@ -19,7 +19,7 @@
     "url": "https://github.com/LordEidi/fennel/issues"
   },
   "scripts": {
-    "test": "tape test/*.js | faucet"
+    "test": "tape test/**/*.js | faucet"
   },
   "homepage": "https://github.com/LordEidi/fennel",
   "repository": {
@@ -27,18 +27,22 @@
     "url": "https://github.com/LordEidi/fennel.git"
   },
   "dependencies": {
+    "crossroads": "^0.12.2",
     "htdigest": "^2.0.2",
     "htpasswd": "^2.1.2",
     "http-auth": "^2.1.9",
-    "libxmljs": "^0.14.2",
+    "libxmljs": "^0.18.0",
     "log4js": "^0.6.9",
+    "moment": "^2.15.1",
     "node-regexp": "^0.1.1",
     "sequelize": "^3.3.2",
     "sqlite3": "^3.0.8",
+    "uuid": "^2.0.3",
     "xml2js": "^0.4.9"
   },
   "devDependencies": {
     "tape": "^4.0.1",
-    "request": "^2.65.0"
+    "request": "^2.65.0",
+    "faucet": "0.0.1"
   }
 }
