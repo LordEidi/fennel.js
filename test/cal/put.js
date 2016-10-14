@@ -42,7 +42,7 @@ var password = config.test_user_pwd;
 
 test('Calling PUT on calendar', function (t) {
 
-    t.plan(1);
+    t.plan(2);
 
     var now = moment();
     var uuidEvent = uuid.v4();
@@ -100,6 +100,18 @@ test('Calling PUT on calendar', function (t) {
 
         if (!error) {
             t.equal(response.statusCode, 201, "StatusCode matches");
+            // Check ETAG Header
+        }
+        else {
+            t.fail(error);
+        }
+    });
+
+    // resend, should send status 412 now, existing record should not be overwritten
+    request(options, function (error, response, body) {
+
+        if (!error) {
+            t.equal(response.statusCode, 412, "StatusCode matches");
             // Check ETAG Header
         }
         else {

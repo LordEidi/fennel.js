@@ -153,9 +153,14 @@ request.prototype.stringEndsWith = function(str, suffix)
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
 };
 
+request.prototype.hasHeader = function(header)
+{
+    return (this.getHeader(header));
+};
+
 request.prototype.getHeader = function(header)
 {
-    return this.req.getHeader(header);
+    return this.req.headers[header.toLowerCase()];
 };
 
 request.prototype.getCalIdFromURL = function()
@@ -168,7 +173,3 @@ request.prototype.getCardIdFromURL = function()
     return this.card;
 };
 
-request.prototype.hasHeader = function(header)
-{
-    return (this.getHeader());
-};

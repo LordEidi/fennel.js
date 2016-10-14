@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-15 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -143,47 +143,56 @@ function put(request)
     };
 
     ICS.findOrCreate({ where: {pkey: ics_id}, defaults: defaults}).spread(function(ics, created)
+    {
+        if(created)
         {
-            if(created)
+            log.debug('Created ICS: ' + JSON.stringify(ics, null, 4));
+        }
+        else
+        {
+            var ifNoneMatch = request.getHeader('If-None-Match');
+            if(ifNoneMatch && ifNoneMatch === "*")
             {
-                log.debug('Created ICS: ' + JSON.stringify(ics, null, 4));
+                log.debug('If-None-Match matches, return status code 412');
+
+
+            // TODO: check for  'If-None-Match': '*' Header and reply with a Status Code 412 and an error
+            // since caller does not want to replace / change the ICS but only create new records
+            /*
+                <?xml version='1.0' encoding='utf-8'?>
+                <d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
+                  <s:sabredav-version>3.1.0-alpha2</s:sabredav-version>
+                  <s:exception>Sabre\DAV\Exception\PreconditionFailed</s:exception>
+                  <s:message>An If-None-Match header was specified, but the ETag matched (or * was
+                specified).</s:message>
+                  <s:header>If-None-Match</s:header>
+                </d:error>
+             */
             }
             else
             {
-                // TODO: check for  'If-None-Match': '*' Header and reply with a Status Code 412 and an error
-                // since caller does not want to replace / change the ICS but only create new records
-                /*
-                    <?xml version='1.0' encoding='utf-8'?>
-                    <d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
-                      <s:sabredav-version>3.1.0-alpha2</s:sabredav-version>
-                      <s:exception>Sabre\DAV\Exception\PreconditionFailed</s:exception>
-                      <s:message>An If-None-Match header was specified, but the ETag matched (or * was
-                    specified).</s:message>
-                      <s:header>If-None-Match</s:header>
-                    </d:error>
-                 */
-
                 ics.content = request.getBody();
                 log.debug('Loaded ICS: ' + JSON.stringify(ics, null, 4));
             }
+        }
 
-            ics.save().then(function()
+        ics.save().then(function()
+        {
+            log.info('ics updated');
+
+            // update calendar collection
+            CAL.findOne({ where: {pkey: calendar} } ).then(function(cal)
             {
-                log.info('ics updated');
-
-                // update calendar collection
-                CAL.findOne({ where: {pkey: calendar} } ).then(function(cal)
+                if(cal !== null && cal !== undefined)
                 {
-                    if(cal !== null && cal !== undefined)
+                    cal.increment('synctoken', { by: 1 }).then(function()
                     {
-                        cal.increment('synctoken', { by: 1 }).then(function()
-                        {
-                            log.info('synctoken on cal updated');
-                        });
-                    }
-                });
+                        log.info('synctoken on cal updated');
+                    });
+                }
             });
         });
+    });
 
     rh.setStandardHeaders(request);
 
