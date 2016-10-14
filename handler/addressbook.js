@@ -453,7 +453,6 @@ function put(request)
     log.debug("addressbook.put called");
 
     var vcardId = request.getFilenameFromPath(true);
-    var addressbookId = request.getCardIdFromURL();
 
     var body = request.getBody();
 
@@ -462,7 +461,7 @@ function put(request)
 
     var username = request.getUser().getUserName();
 
-    var adbName = request.getPathElement(3);
+    var adbName = request.getCardIdFromURL();
 
     // check out if we already have a record for the default addressbook
     // if not, lets create it, otherwise let's return its values...
