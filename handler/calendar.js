@@ -773,12 +773,12 @@ function makeCalendar(request)
     var childs = node.childNodes();
     var res = request.getRes();
 
-    var timezone,
-    order,
-    free_busy_set,
-    supported_cal_component,
-    colour,
-    displayname;
+    var timezone;
+    var order;
+    var free_busy_set = "";
+    var supported_cal_component;
+    var colour = "#44A703FF";
+    var displayname;
 
     var len = childs.length;
     if(len > 0)

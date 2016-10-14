@@ -190,10 +190,20 @@ function report(request)
     rh.setStandardHeaders(request);
 
     var res = request.getRes();
+
+    var body = request.getBody();
+    if(!body)
+    {
+        log.warn("principal.report called with no body");
+
+        res.writeHead(500);
+        res.write("Internal Server Error");
+        return;
+    }
+
     res.writeHead(200);
     res.write(xh.getXMLHead());
 
-    var body = request.getBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propfind/A:prop', {
