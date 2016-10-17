@@ -46,7 +46,7 @@ var basic = httpauth.basic(
         realm: "Fennel"
     }, function (username, password, callback)
     {
-        authlib.checkLogin(username, password, callback);
+        authlib.checkLogin(basic, username, password, callback);
     }
 );
 

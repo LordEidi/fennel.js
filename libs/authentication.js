@@ -11,12 +11,10 @@
 var log = require('../libs/log').log;
 var config = require('../config').config;
 
-var httpauth = require('http-auth');
-
 var fs = require('fs');
 var path = require('path');
 
-function checkLogin(username, password, callback)
+function checkLogin(basicAuth, username, password, callback)
 {
     log.debug("Login process started for user: " + username);
 
@@ -27,7 +25,7 @@ function checkLogin(username, password, callback)
             break;
 
         case 'htaccess':
-            checkHtaccess(username, password, callback);
+            checkHtaccess(basicAuth, username, password, callback);
             break;
 
         default:
@@ -37,7 +35,7 @@ function checkLogin(username, password, callback)
     }
 }
 
-function checkHtaccess(username, password, callback)
+function checkHtaccess(basicAuth, username, password, callback)
 {
     log.debug("Authenticating user with htaccess method.");
 
@@ -53,9 +51,6 @@ function checkHtaccess(username, password, callback)
     var strHTAccess = fs.readFileSync(fHTAccess, 'utf8');
     var lines = strHTAccess.replace(/\r\n/g, "\n").split("\n");
 
-    // not cool, but works for now...
-    var basicauth = httpauth.basic({},{});
-
     for (var i in lines)
     {
         var line = lines[i];
@@ -65,7 +60,7 @@ function checkHtaccess(username, password, callback)
             var ret = processLine(line);
             if(ret.username == username)
             {
-                if(basicauth.validate(ret.passwordhash, password))
+                if(basicAuth.validate(ret.passwordhash, password))
                 {
                     log.info("User logged in: " + username);
                     callback(true);

@@ -70,7 +70,7 @@ test('Calling REPORT on calendar', function (t) {
         if (!error)
         {
             t.equal(response.statusCode, 207, "StatusCode matches");
-            // Check body for correct amount of xml tags and entities
+            // todo: Check body for correct amount of xml tags and entities
             console.log(body);
         }
         else
