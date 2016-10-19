@@ -32,6 +32,7 @@
  -----------------------------------------------------------------------------*/
 var test = require('tape');
 var request = require('request');
+var xml = require("libxmljs");
 
 var config = require('../../config').config;
 
@@ -39,8 +40,6 @@ var username = config.test_user_name;
 var password = config.test_user_pwd;
 
 test('Calling REPORT on calendar', function (t) {
-
-    t.plan(1);
 
     var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
 
@@ -65,12 +64,60 @@ test('Calling REPORT on calendar', function (t) {
         followRedirect: false
     }
 
+    /*
+    * expected response
+    *
+    *<?xml version='1.0' encoding='UTF-8'?>
+     <d:multistatus
+     xmlns:d="DAV:"
+     xmlns:cal="urn:ietf:params:xml:ns:caldav"
+     xmlns:cs="http://calendarserver.org/ns/"
+     xmlns:card="urn:ietf:params:xml:ns:carddav"
+     xmlns:ical="http://apple.com/ns/ical/">
+          <d:response>
+            <d:href>/cal/username/calid/event.ics</d:href>
+            <d:propstat>
+              <d:prop>
+                <d:getetag>"etag"</d:getetag>
+                <d:getcontenttype>text/calendar; charset=utf-8; component=VEVENT</d:getcontenttype>
+              </d:prop>
+              <d:status>HTTP/1.1 200 OK</d:status>
+            </d:propstat>
+          </d:response>
+          <d:response>
+            ...
+          </d:response>
+          <d:sync-token>http://swordlord.org/ns/sync/id</d:sync-token>
+        </d:multistatus>
+
+    * */
+
     request(options, function (error, response, body) {
 
         if (!error)
         {
+            t.plan(3);
+
             t.equal(response.statusCode, 207, "StatusCode matches");
-            // todo: Check body for correct amount of xml tags and entities
+
+            var xmlDoc = xml.parseXml(body);
+
+            var nodeSync = xmlDoc.get('/D:multistatus/D:sync-token', {   D: 'DAV:' } );
+
+            t.doesNotEqual(nodeSync, undefined, "sync-token node exists");
+            t.equal(nodeSync.text().substr(0, 29), "http://swordlord.org/ns/sync/", "sync token has right URL");
+
+            var nodeStatus = xmlDoc.get('/D:multistatus', {   D: 'DAV:' } );
+
+            var childs = nodeStatus.childNodes();
+            for (var i=0; i < childs.length; ++i)
+            {
+                var child = childs[i];
+                var name = child.name();
+
+                // todo: Check body for correct amount of xml tags and entities
+            }
+
             console.log(body);
         }
         else
