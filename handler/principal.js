@@ -2,14 +2,13 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-15 by
+ ** Copyright 2014-16 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
  -----------------------------------------------------------------------------*/
 
 var xml = require("libxmljs");
-var rh = require("../libs/responsehelper");
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
 
@@ -21,18 +20,17 @@ module.exports = {
     options: options
 };
 
-function propfind(request)
+function propfind(comm)
 {
     log.debug("principal.propfind called");
 
-    rh.setStandardHeaders(request);
-    rh.setDAVHeaders(request);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
+    comm.setResponseCode(207);
 
-    var res = request.getRes();
-    res.writeHead(207);
-    res.write(xh.getXMLHead());
+    comm.appendResBody(xh.getXMLHead());
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propfind/A:prop', {
@@ -62,15 +60,15 @@ function propfind(request)
                 break;
 
             case 'supported-report-set':
-                response += getSupportedReportSet(request);
+                response += getSupportedReportSet(comm);
                 break;
 
             case 'principal-URL':
-                response += "<d:principal-URL><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:principal-URL>\r\n";
+                response += "<d:principal-URL><d:href>/p/" + comm.getUser().getUserName() + "/</d:href></d:principal-URL>\r\n";
                 break;
 
             case 'displayname':
-                response += "<d:displayname>" + request.getUser().getUserName() + "</d:displayname>";
+                response += "<d:displayname>" + comm.getUser().getUserName() + "</d:displayname>";
                 break;
 
             case 'principal-collection-set':
@@ -78,23 +76,23 @@ function propfind(request)
                 break;
 
             case 'current-user-principal':
-                response += "<d:current-user-principal><d:href>/p/" + request.getUser().getUserName() + "/</d:href></d:current-user-principal>";
+                response += "<d:current-user-principal><d:href>/p/" + comm.getUser().getUserName() + "/</d:href></d:current-user-principal>";
                 break;
 
             case 'calendar-home-set':
-                response += "<cal:calendar-home-set><d:href>/cal/" + request.getUser().getUserName() + "</d:href></cal:calendar-home-set>";
+                response += "<cal:calendar-home-set><d:href>/cal/" + comm.getUser().getUserName() + "</d:href></cal:calendar-home-set>";
                 break;
 
             case 'schedule-outbox-URL':
-                response += "<cal:schedule-outbox-URL><d:href>/cal/" + request.getUser().getUserName() + "/outbox</d:href></cal:schedule-outbox-URL>";
+                response += "<cal:schedule-outbox-URL><d:href>/cal/" + comm.getUser().getUserName() + "/outbox</d:href></cal:schedule-outbox-URL>";
                 break;
 
             case 'calendar-user-address-set':
-                response += getCalendarUserAddressSet(request);
+                response += getCalendarUserAddressSet(comm);
                 break;
 
             case 'notification-URL':
-                response += "<cs:notification-URL><d:href>/cal/" + request.getUser().getUserName() + "/notifications/</d:href></cs:notification-URL>";
+                response += "<cs:notification-URL><d:href>/cal/" + comm.getUser().getUserName() + "/notifications/</d:href></cs:notification-URL>";
                 break;
 
             case 'getcontenttype':
@@ -102,7 +100,7 @@ function propfind(request)
                 break;
 
             case 'addressbook-home-set':
-                response += "<card:addressbook-home-set><d:href>/card/" + request.getUser().getUserName() + "/</d:href></card:addressbook-home-set>";
+                response += "<card:addressbook-home-set><d:href>/card/" + comm.getUser().getUserName() + "/</d:href></card:addressbook-home-set>";
                 break;
 
             case 'directory-gateway':
@@ -121,31 +119,33 @@ function propfind(request)
         }
     }
 
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    res.write("<d:response>");
-    res.write("<d:propstat>");
-    res.write("<d:prop>");
-    res.write(response);
-    res.write("</d:prop>");
-    res.write("<d:status>HTTP/1.1 200 OK</d:status>");
-    res.write("</d:propstat>");
-    res.write("</d:response>");
-    res.write("</d:multistatus>");
+    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+    comm.appendResBody("<d:response>");
+    comm.appendResBody("<d:propstat>");
+    comm.appendResBody("<d:prop>");
+    comm.appendResBody(response);
+    comm.appendResBody("</d:prop>");
+    comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
+    comm.appendResBody("</d:propstat>");
+    comm.appendResBody("</d:response>");
+    comm.appendResBody("</d:multistatus>");
+
+    comm.flushResponse();
 }
 
-function getCalendarUserAddressSet(request)
+function getCalendarUserAddressSet(comm)
 {
     var response = "";
 
     response += "        <cal:calendar-user-address-set>\r\n";
     response += "        	<d:href>mailto:lord test at swordlord.com</d:href>\r\n";
-    response += "        	<d:href>/p/" + request.getUser().getUserName() + "/</d:href>\r\n";
+    response += "        	<d:href>/p/" + comm.getUser().getUserName() + "/</d:href>\r\n";
     response += "        </cal:calendar-user-address-set>\r\n";
 
     return response;
 }
 
-function getSupportedReportSet(request)
+function getSupportedReportSet(comm)
 {
     var response = "";
     response += "        <d:supported-report-set>\r\n";
@@ -169,40 +169,39 @@ function getSupportedReportSet(request)
     return response;
 }
 
-function options(request)
+function options(comm)
 {
     log.debug("principal.options called");
 
-    var res = request.getRes();
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Server", "Fennel");
+    comm.setHeader("Content-Type", "text/html");
+    comm.setHeader("Server", "Fennel");
 
-    rh.setDAVHeaders(request);
-    rh.setAllowHeader(request);
+    comm.setDAVHeaders();
+    comm.setAllowHeader();
 
-    res.writeHead(200);
+    comm.setResponseCode(200);
+    comm.flushResponse();
 }
 
-function report(request)
+function report(comm)
 {
     log.debug("principal.report called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var res = request.getRes();
-
-    var body = request.getBody();
+    var body = comm.getReqBody();
     if(!body)
     {
         log.warn("principal.report called with no body");
 
-        res.writeHead(500);
-        res.write("Internal Server Error");
+        comm.setResponseCode(500);
+        comm.appendResBody("Internal Server Error");
+        comm.flushResponse();
         return;
     }
 
-    res.writeHead(200);
-    res.write(xh.getXMLHead());
+    comm.setResponseCode(200);
+    comm.appendResBody(xh.getXMLHead());
 
     var xmlDoc = xml.parseXml(body);
 
@@ -228,7 +227,7 @@ function report(request)
             switch(name)
             {
                 case 'principal-search-property-set':
-                    response += getPrincipalSearchPropertySet(request);
+                    response += getPrincipalSearchPropertySet(comm);
                     break;
 
                 default:
@@ -252,7 +251,7 @@ function report(request)
         switch(name)
         {
             case 'principal-search-property-set':
-                response += getPrincipalSearchPropertySet(request);
+                response += getPrincipalSearchPropertySet(comm);
                 break;
 
             default:
@@ -262,16 +261,18 @@ function report(request)
     }
 
     // TODO: clean up
-    res.write(response);
+    comm.appendResBody(response);
 
-    if(isReportPropertyCalendarProxyWriteFor(request))
+    if(isReportPropertyCalendarProxyWriteFor(comm))
     {
-        replyPropertyCalendarProxyWriteFor(request);
+        replyPropertyCalendarProxyWriteFor(comm);
     }
+
+    comm.flushResponse();
 }
 
 
-function getPrincipalSearchPropertySet(request)
+function getPrincipalSearchPropertySet(comm)
 {
     var response = "";
     response += "<d:principal-search-property-set xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n";
@@ -293,9 +294,9 @@ function getPrincipalSearchPropertySet(request)
 }
 
 
-function isReportPropertyCalendarProxyWriteFor(request)
+function isReportPropertyCalendarProxyWriteFor(comm)
 {
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:expand-property/A:property[@name=\'calendar-proxy-write-for\']', { A: 'DAV:', C: 'http://calendarserver.org/ns/'});
@@ -303,45 +304,45 @@ function isReportPropertyCalendarProxyWriteFor(request)
     return typeof node != 'undefined';
 }
 
-function replyPropertyCalendarProxyWriteFor(request)
+function replyPropertyCalendarProxyWriteFor(comm)
 {
-    var url = request.getURL();
-    var res = request.getRes();
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
-    res.write("<d:response>");
-    res.write("    <d:href>" + url + "</d:href>");
-    res.write("    <d:propstat>");
-    res.write("       <d:prop>");
-    res.write("           <cs:calendar-proxy-read-for/>");
-    res.write("           <cs:calendar-proxy-write-for/>");
-    res.write("       </d:prop>");
-    res.write("        <d:status>HTTP/1.1 200 OK</d:status>");
-    res.write("    </d:propstat>");
-    res.write("</d:response>");
-    res.write("</d:multistatus>\r\n");
+    var url = comm.getURL();
+    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
+    comm.appendResBody("<d:response>");
+    comm.appendResBody("    <d:href>" + url + "</d:href>");
+    comm.appendResBody("    <d:propstat>");
+    comm.appendResBody("       <d:prop>");
+    comm.appendResBody("           <cs:calendar-proxy-read-for/>");
+    comm.appendResBody("           <cs:calendar-proxy-write-for/>");
+    comm.appendResBody("       </d:prop>");
+    comm.appendResBody("        <d:status>HTTP/1.1 200 OK</d:status>");
+    comm.appendResBody("    </d:propstat>");
+    comm.appendResBody("</d:response>");
+    comm.appendResBody("</d:multistatus>\r\n");
 }
 
-function proppatch(request)
+function proppatch(comm)
 {
     log.debug("principal.proppatch called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders(comm);
 
-    var url = request.getURL();
-    var res = request.getRes();
-    res.writeHead(200);
+    var url = comm.getURL();
+    comm.setResponseCode(200);
 
-    res.write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
-    res.write("	<d:response>\r\n");
-    res.write("		<d:href>" + url + "</d:href>\r\n");
-    res.write("		<d:propstat>\r\n");
-    res.write("			<d:prop>\r\n");
-    res.write("				<cal:default-alarm-vevent-date/>\r\n");
-    res.write("			</d:prop>\r\n");
-    res.write("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
-    res.write("		</d:propstat>\r\n");
-    res.write("	</d:response>\r\n");
-    res.write("</d:multistatus>\r\n");
+    comm.appendResBody("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">\r\n");
+    comm.appendResBody("	<d:response>\r\n");
+    comm.appendResBody("		<d:href>" + url + "</d:href>\r\n");
+    comm.appendResBody("		<d:propstat>\r\n");
+    comm.appendResBody("			<d:prop>\r\n");
+    comm.appendResBody("				<cal:default-alarm-vevent-date/>\r\n");
+    comm.appendResBody("			</d:prop>\r\n");
+    comm.appendResBody("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
+    comm.appendResBody("		</d:propstat>\r\n");
+    comm.appendResBody("	</d:response>\r\n");
+    comm.appendResBody("</d:multistatus>\r\n");
+
+    comm.flushResponse();
 }
 

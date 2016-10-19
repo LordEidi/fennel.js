@@ -9,7 +9,6 @@
  -----------------------------------------------------------------------------*/
 
 var xml = require("libxmljs");
-var rh = require("../libs/responsehelper");
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
 var VCARD = require('../libs/db').VCARD;
@@ -27,20 +26,19 @@ module.exports = {
     move: move
 };
 
-function propfind(request)
+function propfind(comm)
 {
     log.debug("addressbook.propfind called");
 
-    rh.setStandardHeaders(request);
-    rh.setDAVHeaders(request);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
 
-    var res = request.getRes();
-    res.writeHead(207);
-    res.write(xh.getXMLHead());
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
 
     var response = "";
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propfind/A:prop', {
@@ -55,19 +53,17 @@ function propfind(request)
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO:
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
         isRoot = false;
     }
 
-    request.dontCloseResAutomatically();
-
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     // respond for root and every addressbook
     if(isRoot === true)
     {
-        response += returnPropfindRootProps(request, childs);
+        response += returnPropfindRootProps(comm, childs);
 
         var defaults = {
             pkey: generateUUIDv4(),
@@ -84,7 +80,7 @@ function propfind(request)
                 { where: {addressbookId: adb.pkey}}
             ).then(function(rsVCARDS)
                 {
-                    response += returnPropfindProps(request, childs, adb, rsVCARDS);
+                    response += returnPropfindProps(comm, childs, adb, rsVCARDS);
 
                     if(created)
                     {
@@ -94,17 +90,17 @@ function propfind(request)
                         });
                     }
 
-                    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-                    res.write(response);
-                    res.write("</d:multistatus>");
+                    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+                    comm.appendResBody(response);
+                    comm.appendResBody("</d:multistatus>");
 
-                    request.closeRes();
+                    comm.flushResponse();
                 });
         });
     }
     else
     {
-        var adbName = request.getPathElement(3);
+        var adbName = comm.getPathElement(3);
 
         // check out if we already have a record for the default addressbook
         // if not, lets create it, otherwise let's return its values...
@@ -114,13 +110,13 @@ function propfind(request)
                 { where: {addressbookId: adb.pkey}}
             ).then(function(rsVCARDS)
                 {
-                    response += returnPropfindProps(request, childs, adb, rsVCARDS);
+                    response += returnPropfindProps(comm, childs, adb, rsVCARDS);
 
-                    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-                    res.write(response);
-                    res.write("</d:multistatus>");
+                    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+                    comm.appendResBody(response);
+                    comm.appendResBody("</d:multistatus>");
 
-                    request.closeRes();
+                    comm.flushResponse();
                 });
         });
     }
@@ -137,16 +133,16 @@ function generateUUIDv4()
     return uuid;
 }
 
-function returnPropfindRootProps(request, nodes, adb, rsVCARD)
+function returnPropfindRootProps(comm, nodes, adb, rsVCARD)
 {
-    var response = "<d:response><d:href>" + request.getURL() + "</d:href>";
+    var response = "<d:response><d:href>" + comm.getURL() + "</d:href>";
 
     response += "<d:propstat>";
     response += "<d:prop>";
 
     var responseEtag = "";
 
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     var len = nodes.length;
     for (var i=0; i < len; ++i)
@@ -207,7 +203,7 @@ function returnPropfindRootProps(request, nodes, adb, rsVCARD)
                 response += "";
                 break;
             case 'getetag':
-                responseEtag += returnADBETag(request, rsVCARD);
+                responseEtag += returnADBETag(comm, rsVCARD);
                 break;
 
             default:
@@ -229,7 +225,7 @@ function returnPropfindRootProps(request, nodes, adb, rsVCARD)
     return response;
 }
 
-function returnADBETag(request, rsVCARD)
+function returnADBETag(comm, rsVCARD)
 {
     var response = "";
 
@@ -240,7 +236,7 @@ function returnADBETag(request, rsVCARD)
         var date = Date.parse(vcard.updatedAt);
 
         response += "<d:response>";
-        response += "<d:href>" + request.getURL() + vcard.pkey + ".vcf</d:href>";
+        response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
         response += "<d:propstat>";
         response += "<d:prop>";
         response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
@@ -253,9 +249,9 @@ function returnADBETag(request, rsVCARD)
     return response;
 }
 
-function returnPropfindProps(request, nodes, adb, rsVCARD)
+function returnPropfindProps(comm, nodes, adb, rsVCARD)
 {
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     var response = "<d:response><d:href>/card/" + username + "/" + adb.name + "/</d:href>";
 
@@ -320,7 +316,7 @@ function returnPropfindProps(request, nodes, adb, rsVCARD)
                 response += "";
                 break;
             case 'getetag':
-                responseEtag += returnADBETag(request, rsVCARD);
+                responseEtag += returnADBETag(comm, rsVCARD);
                 break;
 
             default:
@@ -343,12 +339,12 @@ function returnPropfindProps(request, nodes, adb, rsVCARD)
 }
 
 
-function del(request)
+function del(comm)
 {
     /*
     log.debug("calendar.delete called");
 
-    var res = request.getRes();
+    var res = comm.getRes();
 
     res.setHeader("Content-Type", "text/html");
     res.setHeader("Server", "Fennel");
@@ -359,20 +355,18 @@ function del(request)
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO: check if the current user is the user requesting the resource (ACL)
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
-        var lastPathElement = request.getFilenameFromPath(false);
-        if(request.stringEndsWith(lastPathElement, '.ics'))
+        var lastPathElement = comm.getFilenameFromPath(false);
+        if(comm.stringEndsWith(lastPathElement, '.ics'))
         {
             isRoot = false;
         }
     }
 
-    request.dontCloseResAutomatically();
-
     if(isRoot === true)
     {
-        var calendarId = request.getPathElement(3);
+        var calendarId = comm.getPathElement(3);
 
         CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
@@ -388,12 +382,12 @@ function del(request)
                 })
             }
 
-            request.closeRes();
+            comm.flushResponse();
         });
     }
     else
     {
-        var ics_id = request.getFilenameFromPath(true);
+        var ics_id = comm.getFilenameFromPath(true);
 
         ICS.find( { where: {pkey: ics_id}}).then(function(ics)
         {
@@ -409,22 +403,20 @@ function del(request)
                 })
             }
 
-            request.closeRes();
+            comm.flushResponse();
         });
     }
 */
 }
 
-function gett(request)
+function gett(comm)
 {
     log.debug("calendar.get called");
 
-    var res = request.getRes();
+    var res = comm.getRes();
     res.setHeader("Content-Type", "text/vcard; charset=utf-8");
 
-    request.dontCloseResAutomatically();
-
-    var vcardId = request.getFilenameFromPath(true);
+    var vcardId = comm.getFilenameFromPath(true);
     VCARD.find({ where: {pkey: vcardId} }).then(function(vcard)
     {
         if(vcard === null)
@@ -433,35 +425,35 @@ function gett(request)
         }
         else
         {
-            var res = request.getRes();
+            var res = comm.getRes();
 
             var content = vcard.content;
             //content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 
-            res.write(content);
+            comm.appendResBody(content);
         }
 
-        request.closeRes();
+        comm.flushResponse();
     });
 }
 
-function put(request)
+function put(comm)
 {
     // PUT /addressbooks/a3298271331/fruux-merged/68a386ea-be30-4922-a407-890b56bf944d.vcf HTTP/1.1
     // X-ADDRESSBOOKSERVER-KIND:group -> is_group === true
 
     log.debug("addressbook.put called");
 
-    var vcardId = request.getFilenameFromPath(true);
+    var vcardId = comm.getFilenameFromPath(true);
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
 
     var match = body.search(/X-ADDRESSBOOKSERVER-KIND:group/);
     var isGroup = (match >= 0);
 
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
-    var adbName = request.getCardIdFromURL();
+    var adbName = comm.getCardIdFromURL();
 
     // check out if we already have a record for the default addressbook
     // if not, lets create it, otherwise let's return its values...
@@ -470,7 +462,7 @@ function put(request)
         var defaults = {
             addressbookId: adb.pkey,
             content: body,
-            ownerId: request.getUser().getUserName(),
+            ownerId: comm.getUser().getUserName(),
             is_group: isGroup
         };
 
@@ -484,7 +476,7 @@ function put(request)
                 }
                 else
                 {
-                    vcard.content = request.getBody();
+                    vcard.content = comm.getReqBody();
                     vcard.is_group = isGroup;
                     log.debug('Loaded VCARD: ' + JSON.stringify(vcard, null, 4));
                 }
@@ -510,29 +502,28 @@ function put(request)
             });
     });
 
-    rh.setStandardHeaders(request);
-
-    var res = request.getRes();
+    comm.setStandardHeaders();
 
     var date = new Date();
-    res.setHeader("ETag", Number(date));
+    comm.setHeader("ETag", Number(date));
 
-    res.writeHead(201);
+    comm.setResponseCode(201);
+    comm.flushResponse();
 }
 
-function move(request)
+function move(comm)
 {
     /*
     log.debug("calendar.move called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders(comm);
 
-    var ics_id = request.getFilenameFromPath(true);
-    var calendar = request.getLastPathElement();
+    var ics_id = comm.getFilenameFromPath(true);
+    var calendar = comm.getLastPathElement();
 
     var destination = "";
 
-    var req = request.getReq();
+    var req = comm.getReq();
     var headers = req.headers;
     for(var header in headers)
     {
@@ -564,8 +555,7 @@ function move(request)
         });
     }
 
-    var res = request.getRes();
-    res.writeHead(201);
+    comm.setResponseCode(201);
     */
 }
 
@@ -605,18 +595,18 @@ function  getCurrentUserPrivilegeSet()
     return response;
 }
 
-function options(request)
+function options(comm)
 {
     log.debug("principal.options called");
 
-    rh.setStandardHeaders(request);
-    rh.setDAVHeaders(request);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
 
-    var res = request.getRes();
-    res.writeHead(200);
+    comm.setResponseCode(200);
+    comm.flushResponse();
 }
 
-function report(request)
+function report(comm)
 {
     /*
      REPORT /addressbooks/a3298271331/fruux-merged/ HTTP/1.1
@@ -633,13 +623,12 @@ function report(request)
 
     log.debug("addressbook.report called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var res = request.getRes();
-    res.writeHead(200);
-    res.write(xh.getXMLHead());
+    comm.setResponseCode(200);
+    comm.appendResBody(xh.getXMLHead());
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var rootNode = xmlDoc.root();
@@ -648,18 +637,19 @@ function report(request)
     switch(name)
     {
         case 'addressbook-multiget':
-            handleReportAdressbookMultiget(request);
+            handleReportAdressbookMultiget(comm);
             break;
 
         default:
             if(name != 'text') log.warn("P-R: not handled: " + name);
+            comm.flushResponse();
             break;
     }
 }
 
-function handleReportAdressbookMultiget(request)
+function handleReportAdressbookMultiget(comm)
 {
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/B:addressbook-multiget', {
@@ -696,9 +686,11 @@ function handleReportAdressbookMultiget(request)
             }
         }
 
-        request.dontCloseResAutomatically();
-
-        handleReportHrefs(request, arrHrefs);
+        handleReportHrefs(comm, arrHrefs);
+    }
+    else
+    {
+        comm.flushResponse();
     }
 }
 
@@ -710,7 +702,7 @@ function parseHrefToVCARDId(href)
     return id.substr(0, id.length - 4);
 }
 
-function handleReportHrefs(request, arrVCARDIds)
+function handleReportHrefs(comm, arrVCARDIds)
 {
     VCARD.findAndCountAll( { where: {pkey: arrVCARDIds}}).then(function(result)
     {
@@ -727,7 +719,7 @@ function handleReportHrefs(request, arrVCARDIds)
             content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 
             response += "<d:response>";
-            response += "<d:href>" + request.getURL() + vcard.pkey + ".vcf</d:href>";
+            response += "<d:href>" + comm.getURL() + vcard.pkey + ".vcf</d:href>";
             response += "<d:propstat><d:prop>";
             response += "<card:address-data>" + content + "</card:address-data>";
             response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
@@ -735,32 +727,26 @@ function handleReportHrefs(request, arrVCARDIds)
             response += "</d:response>";
         }
 
-        var res = request.getRes();
+        comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" >\r\n");
+        comm.appendResBody(response);
+        comm.appendResBody("</d:multistatus>\r\n");
 
-        res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" >\r\n");
-
-        res.write(response);
-
-        res.write("</d:multistatus>\r\n");
-
-
-        request.closeRes();
+        comm.flushResponse();
     });
 }
 
-function proppatch(request)
+function proppatch(comm)
 {
     log.debug("addressbook.proppatch called");
 
     /*
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var res = request.getRes();
-    res.writeHead(200);
+    comm.setResponseCode(200);
 
-    res.write(xh.getXMLHead());
+    comm.appendResBody(xh.getXMLHead());
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propertyupdate/A:set/A:prop', {
@@ -776,22 +762,20 @@ function proppatch(request)
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO:
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
-        var lastPathElement = request.getFilenameFromPath(false);
-        if(request.stringEndsWith(lastPathElement, '.ics'))
+        var lastPathElement = comm.getFilenameFromPath(false);
+        if(comm.stringEndsWith(lastPathElement, '.ics'))
         {
             isRoot = false;
         }
     }
 
-    request.dontCloseResAutomatically();
-
     var response = "";
 
     if(isRoot)
     {
-        var calendarId = request.getLastPathElement(false);
+        var calendarId = comm.getLastPathElement(false);
         CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
@@ -821,17 +805,17 @@ function proppatch(request)
                     }
                 }
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write("	<d:response>\r\n");
-                res.write("		<d:href>" + request.getURL() + "</d:href>\r\n");
-                res.write("		<d:propstat>\r\n");
-                res.write("			<d:prop>\r\n");
-                res.write(response);
-                res.write("			</d:prop>\r\n");
-                res.write("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
-                res.write("		</d:propstat>\r\n");
-                res.write("	</d:response>\r\n");
-                res.write("</d:multistatus>\r\n");
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody("	<d:response>\r\n");
+                comm.appendResBody("		<d:href>" + comm.getURL() + "</d:href>\r\n");
+                comm.appendResBody("		<d:propstat>\r\n");
+                comm.appendResBody("			<d:prop>\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("			</d:prop>\r\n");
+                comm.appendResBody("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
+                comm.appendResBody("		</d:propstat>\r\n");
+                comm.appendResBody("	</d:response>\r\n");
+                comm.appendResBody("</d:multistatus>\r\n");
             }
             else
             {
@@ -883,20 +867,20 @@ function proppatch(request)
                     log.warn('cal saved');
                 });
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write("	<d:response>\r\n");
-                res.write("		<d:href>" + request.getURL() + "</d:href>\r\n");
-                res.write("		<d:propstat>\r\n");
-                res.write("			<d:prop>\r\n");
-                res.write(response);
-                res.write("			</d:prop>\r\n");
-                res.write("			<d:status>HTTP/1.1 200 OK</d:status>\r\n");
-                res.write("		</d:propstat>\r\n");
-                res.write("	</d:response>\r\n");
-                res.write("</d:multistatus>\r\n");
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody("	<d:response>\r\n");
+                comm.appendResBody("		<d:href>" + comm.getURL() + "</d:href>\r\n");
+                comm.appendResBody("		<d:propstat>\r\n");
+                comm.appendResBody("			<d:prop>\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("			</d:prop>\r\n");
+                comm.appendResBody("			<d:status>HTTP/1.1 200 OK</d:status>\r\n");
+                comm.appendResBody("		</d:propstat>\r\n");
+                comm.appendResBody("	</d:response>\r\n");
+                comm.appendResBody("</d:multistatus>\r\n");
             }
 
-            request.closeRes();
+            comm.flushResponse();
         });
     }
     */

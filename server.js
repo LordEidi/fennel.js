@@ -35,7 +35,7 @@ var url = require('url');
 var log = require('./libs/log').log;
 var handler = require('./libs/requesthandler');
 
-var reqlib = require('./libs/request');
+var communication = require('./libs/communication');
 var httpauth = require('http-auth');
 
 var crossroads = require('crossroads');
@@ -50,62 +50,73 @@ var basic = httpauth.basic(
     }
 );
 
-function onBypass(req, path)
+/**
+ * Called when the URL is not matched against any known/defined pattern
+ * @param comm
+ * @param path
+ */
+function onBypass(comm, path)
 {
     log.info('URL unknown: ' + path);
 
-    var res = req.getRes();
+    var res = comm.getRes();
 
     res.writeHead(500);
-    res.write(req.url + " is not known");
+    res.write(comm.url + " is not known");
     res.end();
 }
 
-function onHitRoot(req)
+/**
+ * Gets called when the / URL is hit
+ * @param comm
+ */
+function onHitRoot(comm)
 {
     log.debug("Called the root. Redirecting to /p/");
 
-    req.getRes().writeHead(302,
+    comm.getRes().writeHead(302,
         {
             'Location': '/p/'
             //todo: add other headers here...?
         });
+    comm.flushResponse();
 }
 
-function onHitWellKnown(req, params)
+function onHitWellKnown(comm, params)
 {
     log.debug("Called .well-known URL for " + params + ". Redirecting to /p/");
 
-    req.getRes().writeHead(302,
+    comm.getRes().writeHead(302,
         {
             'Location': '/p/'
             //todo: add other headers here...?
         });
+    comm.flushResponse();
 }
 
-function onHitPrincipal(req, params)
+function onHitPrincipal(comm, params)
 {
-    req.params = params;
+    comm.params = params;
 
-    handler.handlePrincipal(req);
+    handler.handlePrincipal(comm);
 }
 
-function onHitCalendar(req, username, cal, params)
+function onHitCalendar(comm, username, cal, params)
 {
-    req.username = username;
-    req.cal = cal;
-    req.params = params;
+    comm.username = username;
+    comm.cal = cal;
+    comm.params = params;
 
-    handler.handleCalendar(req);
+    handler.handleCalendar(comm);
 }
 
-function onHitCard(req, username, card, params)
+function onHitCard(comm, username, card, params)
 {
-    req.username = username;
-    req.card = card;
-    req.params = params;
+    comm.username = username;
+    comm.card = card;
+    comm.params = params;
 
-    handler.handleCard(req);
+    handler.handleCard(comm);
 }
 
 crossroads.addRoute('/p/:params*:', onHitPrincipal);
@@ -121,22 +132,20 @@ var server = http.createServer(basic, function (req, res)
     //log.debug("Request started");
 	log.debug("Method: " + req.method + ", URL: " + req.url);
 
-	var body = "";
+	var reqBody = "";
 
     req.on('data', function (data)
     {
-        body += data.toString();
+        reqBody += data.toString();
     });
 
     req.on('end',function()
     {
-        var request = new reqlib.request(req, res, body);
+        var comm = new communication(req, res, reqBody);
 
         var sUrl = url.parse(req.url).pathname;
         log.info("URL requested: " + sUrl);
-        crossroads.parse(sUrl, [request]);
-
-        request.closeResponseAutomatically();
+        crossroads.parse(sUrl, [comm]);
     });
 });
 
@@ -149,7 +158,8 @@ server.on('error', function (e)
 
 process.on('uncaughtException', function(err)
 {
-    console.log('Caught exception: ' + err);
+    log.warn('Caught exception: ' + err.message);
+    log.debug(err.stack);
 });
 
 // Put a friendly message on the terminal

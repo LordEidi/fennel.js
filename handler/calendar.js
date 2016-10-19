@@ -9,12 +9,10 @@
  -----------------------------------------------------------------------------*/
 
 var xml = require("libxmljs");
-var rh = require("../libs/responsehelper");
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
 var ICS = require('../libs/db').ICS;
 var CAL = require('../libs/db').CAL;
-//var Sequelize = require("sequelize");
 
 // Exporting.
 module.exports = {
@@ -29,35 +27,31 @@ module.exports = {
     move: move
 };
 
-function del(request)
+function del(comm)
 {
     log.debug("calendar.delete called");
 
-    var res = request.getRes();
+    comm.setHeader("Content-Type", "text/html");
+    comm.setHeader("Server", "Fennel");
 
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader("Server", "Fennel");
-
-    res.writeHead(204);
+    comm.setResponseCode(204);
 
     var isRoot = true;
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO: check if the current user is the user requesting the resource (ACL)
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
-        var lastPathElement = request.getFilenameFromPath(false);
-        if(request.stringEndsWith(lastPathElement, '.ics'))
+        var lastPathElement = comm.getFilenameFromPath(false);
+        if(comm.stringEndsWith(lastPathElement, '.ics'))
         {
             isRoot = false;
         }
     }
 
-    request.dontCloseResAutomatically();
-
     if(isRoot === true)
     {
-        var calendarId = request.getPathElement(3);
+        var calendarId = comm.getPathElement(3);
 
         CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
@@ -73,12 +67,12 @@ function del(request)
                 })
             }
 
-            request.closeRes();
+            comm.flushResponse();
         });
     }
     else
     {
-        var ics_id = request.getFilenameFromPath(true);
+        var ics_id = comm.getFilenameFromPath(true);
 
         ICS.find( { where: {pkey: ics_id}}).then(function(ics)
         {
@@ -94,22 +88,19 @@ function del(request)
                 })
             }
 
-            request.closeRes();
+            comm.flushResponse();
         });
     }
 
 }
 
-function gett(request)
+function gett(comm)
 {
     log.debug("calendar.get called");
 
-    var res = request.getRes();
-    res.setHeader("Content-Type", "text/calendar");
+    comm.setHeader("Content-Type", "text/calendar");
 
-    request.dontCloseResAutomatically();
-
-    var ics_id = request.getFilenameFromPath(true);
+    var ics_id = comm.getFilenameFromPath(true);
     ICS.find( { where: {pkey: ics_id}}).then(function(ics)
     {
         if(ics === null)
@@ -118,28 +109,26 @@ function gett(request)
         }
         else
         {
-            var res = request.getRes();
-
             var content = ics.content;
             //content = content.replace(/\r\n|\r|\n/g,'&#13;\r\n');
 
-            res.write(content);
+            comm.appendResBody(content);
         }
 
-        request.closeRes();
+        comm.flushResponse();
     });
 }
 
-function put(request)
+function put(comm)
 {
     log.debug("calendar.put called");
 
-    var ics_id = request.getFilenameFromPath(true);
-    var calendar = request.getCalIdFromURL();
+    var ics_id = comm.getFilenameFromPath(true);
+    var calendar = comm.getCalIdFromURL();
 
     var defaults = {
         calendarId: calendar,
-        content: request.getBody()
+        content: comm.getReqBody()
     };
 
     ICS.findOrCreate({ where: {pkey: ics_id}, defaults: defaults}).spread(function(ics, created)
@@ -150,7 +139,7 @@ function put(request)
         }
         else
         {
-            var ifNoneMatch = request.getHeader('If-None-Match');
+            var ifNoneMatch = comm.getHeader('If-None-Match');
             if(ifNoneMatch && ifNoneMatch === "*")
             {
                 log.debug('If-None-Match matches, return status code 412');
@@ -171,7 +160,7 @@ function put(request)
             }
             else
             {
-                ics.content = request.getBody();
+                ics.content = comm.getReqBody();
                 log.debug('Loaded ICS: ' + JSON.stringify(ics, null, 4));
             }
         }
@@ -194,28 +183,27 @@ function put(request)
         });
     });
 
-    rh.setStandardHeaders(request);
-
-    var res = request.getRes();
+    comm.setStandardHeaders();
 
     var date = new Date();
-    res.setHeader("ETag", Number(date));
+    comm.setHeader("ETag", Number(date));
 
-    res.writeHead(201);
+    comm.setResponseCode(201);
+    comm.flushResponse();
 }
 
-function move(request)
+function move(comm)
 {
     log.debug("calendar.move called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var ics_id = request.getFilenameFromPath(true);
-    var calendar = request.getCalIdFromURL();
+    var ics_id = comm.getFilenameFromPath(true);
+    var calendar = comm.getCalIdFromURL();
 
     var destination = "";
 
-    var req = request.getReq();
+    var req = comm.getReq();
     var headers = req.headers;
     for(var header in headers)
     {
@@ -247,24 +235,23 @@ function move(request)
         });
     }
 
-    var res = request.getRes();
-    res.writeHead(201);
+    comm.setResponseCode(201);
+    comm.flushResponse();
 }
 
-function propfind(request)
+function propfind(comm)
 {
     log.debug("calendar.propfind called");
 
-    rh.setStandardHeaders(request);
-    rh.setDAVHeaders(request);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
 
-    var res = request.getRes();
-    res.writeHead(207);
-    res.write(xh.getXMLHead());
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
 
     var response = "";
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propfind/A:prop', {   A: 'DAV:',
@@ -276,18 +263,18 @@ function propfind(request)
     var childs = node.childNodes();
 
     var isRoot = true;
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     // if last element === username, then get all calendar info of user, otherwise only from that specific calendar
-    //var lastelement = request.getLastPathElement();
+    //var lastelement = comm.getLastPathElement();
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO:
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
         isRoot = false;
     }
-    else if(request.getURL() === "/")
+    else if(comm.getURL() === "/")
     {
         response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
 
@@ -317,11 +304,10 @@ function propfind(request)
         }
 
         response += "</d:multistatus>";
-        res.write(response);
+        comm.appendResBody(response);
+        comm.flushResponse();
         return;
     }
-
-    request.dontCloseResAutomatically();
 
     if(isRoot === true)
     {
@@ -335,16 +321,16 @@ function propfind(request)
         if(nodeChecksum !== undefined)
         {
             response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
-            response += "<d:response><d:href>" + request.getURL() + "</d:href></d:response>";
+            response += "<d:response><d:href>" + comm.getURL() + "</d:href></d:response>";
             response += "</d:multistatus>";
-            res.write(response);
-            request.closeRes();
+            comm.appendResBody(response);
+            comm.flushResponse();
         }
         else
         {
             // first get the root node info
             response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
-            response += getCalendarRootNodeResponse(request, childs);
+            response += getCalendarRootNodeResponse(comm, childs);
 
             // then add info for all further known calendars of same user
             var query = { where: {owner: username}, order: [['order', 'ASC']] };
@@ -355,39 +341,39 @@ function propfind(request)
                 {
                     var calendar = result.rows[i];
 
-                    response += returnCalendar(request, calendar, childs);
+                    response += returnCalendar(comm, calendar, childs);
                 }
 
-                response += returnOutbox(request);
-                response += returnNotifications(request);
+                response += returnOutbox(comm);
+                response += returnNotifications(comm);
 
                 response += "</d:multistatus>";
-                res.write(response);
-                request.closeRes();
+                comm.appendResBody(response);
+                comm.flushResponse();
             });
         }
     }
     else
     {
         // otherwise get that specific calendar information
-        var calendarId = request.getCalIdFromURL();
+        var calendarId = comm.getCalIdFromURL();
         if(calendarId === "notifications")
         {
-//            response += returnNotifications(request);
-//            res.write(response);
+//            response += returnNotifications(comm);
+//            comm.appendResBody(response);
 
-            res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-            res.write("<d:response><d:href>" + request.getURL() + "</d:href>");
-            res.write("</d:response>");
-            res.write("</d:multistatus>");
+            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+            comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
+            comm.appendResBody("</d:response>");
+            comm.appendResBody("</d:multistatus>");
 
-            request.closeRes();
+            comm.flushResponse();
         }
         else if(calendarId === "outbox")
         {
-            response += returnOutbox(request);
-            res.write(response);
-            request.closeRes();
+            response += returnOutbox(comm);
+            comm.appendResBody(response);
+            comm.flushResponse();
         }
         else
         {
@@ -400,38 +386,36 @@ function propfind(request)
                 else
                 {
                     // for every ICS element, return the props...
-                    response += returnPropfindElements(request, cal, childs);
+                    response += returnPropfindElements(comm, cal, childs);
 
-                    var res = request.getRes();
-
-                    res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-                    res.write("<d:response><d:href>" + request.getURL() + "</d:href>");
+                    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+                    comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
 
                     if(response.length > 0)
                     {
-                        res.write("<d:propstat>");
-                        res.write("<d:prop>");
-                        res.write(response);
-                        res.write("</d:prop>");
-                        res.write("<d:status>HTTP/1.1 200 OK</d:status>");
-                        res.write("</d:propstat>");
+                        comm.appendResBody("<d:propstat>");
+                        comm.appendResBody("<d:prop>");
+                        comm.appendResBody(response);
+                        comm.appendResBody("</d:prop>");
+                        comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
+                        comm.appendResBody("</d:propstat>");
                     }
 
-                    res.write("</d:response>");
-                    res.write("</d:multistatus>");
+                    comm.appendResBody("</d:response>");
+                    comm.appendResBody("</d:multistatus>");
                 }
 
-                request.closeRes();
+                comm.flushResponse();
             });
         }
     }
 }
 
-function returnPropfindElements(request, calendar, childs)
+function returnPropfindElements(comm, calendar, childs)
 {
     var response = "";
 
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     var token = calendar.synctoken;
 
@@ -598,7 +582,7 @@ function returnPropfindElements(request, calendar, childs)
                 break;
 
             case 'acl':
-                response += getACL(request);
+                response += getACL(comm);
                 break;
 
             case 'getcontenttype':
@@ -614,17 +598,17 @@ function returnPropfindElements(request, calendar, childs)
     return response;
 }
 
-function returnCalendar(request, calendar, childs)
+function returnCalendar(comm, calendar, childs)
 {
     var response = "";
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     response += "	<d:response>";
     response += "		<d:href>/cal/" + username + "/" + calendar.pkey + "/</d:href>";
     response += "		<d:propstat>";
     response += "			<d:prop>";
 
-    response += returnPropfindElements(request, calendar, childs);
+    response += returnPropfindElements(comm, calendar, childs);
 
     response += "			</d:prop>";
     response += "			<d:status>HTTP/1.1 200 OK</d:status>";
@@ -634,13 +618,13 @@ function returnCalendar(request, calendar, childs)
     return response;
 }
 
-function getCalendarRootNodeResponse(request, childs)
+function getCalendarRootNodeResponse(comm, childs)
 {
     var response = "";
 
-    var owner = request.getUser().getUserName();
+    var owner = comm.getUser().getUserName();
 
-    response += "<d:response><d:href>" + request.getURL() + "</d:href>";
+    response += "<d:response><d:href>" + comm.getURL() + "</d:href>";
     response += "<d:propstat>";
     response += "<d:prop>";
 
@@ -722,9 +706,9 @@ function  getCurrentUserPrivilegeSet()
     return response;
 }
 
-function getACL(request)
+function getACL(comm)
 {
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
     var response = "";
 
     response += "<d:acl>";
@@ -773,15 +757,15 @@ function getACL(request)
     return response;
 }
 
-function makeCalendar(request)
+function makeCalendar(comm)
 {
     log.debug("calendar.makeCalendar called");
 
     var response = "";
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/B:mkcalendar/A:set/A:prop', {
@@ -793,7 +777,7 @@ function makeCalendar(request)
     });
 
     var childs = node.childNodes();
-    var res = request.getRes();
+    var res = comm.getRes();
 
     var timezone;
     var order;
@@ -845,10 +829,10 @@ function makeCalendar(request)
 
         //node.childNodes()[1].attr("symbolic-color").value()
         //node.childNodes()[1].text()
-        var filename = request.getCalIdFromURL();
+        var filename = comm.getCalIdFromURL();
 
         var defaults = {
-            owner: request.getUser().getUserName(),
+            owner: comm.getUser().getUserName(),
             timezone: timezone,
             order: order,
             free_busy_set: free_busy_set,
@@ -874,38 +858,38 @@ function makeCalendar(request)
                 });
             });
 
-        res.writeHead(201);
-        res.write(response);
+        comm.setResponseCode(201);
+        comm.appendResBody(response);
+        comm.flushResponse();
     }
     else
     {
-        res.writeHead(500);
-        res.write(response);
+        comm.setResponseCode(500);
+        comm.appendResBody(response);
+        comm.flushResponse();
     }
 }
 
-function options(request)
+function options(comm)
 {
     log.debug("principal.options called");
 
-    rh.setStandardHeaders(request);
-    rh.setDAVHeaders(request);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
 
-    var res = request.getRes();
-    res.writeHead(200);
+    comm.setResponseCode(200);
 }
 
-function report(request)
+function report(comm)
 {
     log.debug("calendar.report called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
+    comm.setResponseCode(207);
 
-    var res = request.getRes();
-    res.writeHead(207);
-    res.write(xh.getXMLHead());
+    comm.appendResBody(xh.getXMLHead());
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var rootNode = xmlDoc.root();
@@ -914,15 +898,15 @@ function report(request)
     switch(name)
     {
         case 'sync-collection':
-            handleReportSyncCollection(request);
+            handleReportSyncCollection(comm);
             break;
 
         case 'calendar-multiget':
-            handleReportCalendarMultiget(request);
+            handleReportCalendarMultiget(comm);
             break;
 
         case 'calendar-query':
-            handleReportCalendarQuery(request);
+            handleReportCalendarQuery(comm);
             break;
 
         default:
@@ -931,11 +915,9 @@ function report(request)
     }
 }
 
-function handleReportCalendarQuery(request)
+function handleReportCalendarQuery(comm)
 {
-    request.dontCloseResAutomatically();
-
-    var calendarId = request.getCalIdFromURL();
+    var calendarId = comm.getCalIdFromURL();
 
     CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
     {
@@ -943,7 +925,7 @@ function handleReportCalendarQuery(request)
                 { where: {calendarId: calendarId}}
             ).then(function(result)
             {
-                var body = request.getBody();
+                var body = comm.getReqBody();
                 var xmlDoc = xml.parseXml(body);
 
                 var nodeProp = xmlDoc.get('/B:calendar-query/A:prop', {
@@ -971,7 +953,7 @@ function handleReportCalendarQuery(request)
                 {
                     var ics = result.rows[j];
 
-                    response += "<d:response><d:href>" + request.getURL() + ics.pkey + ".ics</d:href>";
+                    response += "<d:response><d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
                     response += "<d:propstat>";
                     response += "<d:prop>";
 
@@ -1005,13 +987,11 @@ function handleReportCalendarQuery(request)
                     response += "</d:response>";
                 }
 
-                var res = request.getRes();
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("</d:multistatus>");
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write(response);
-                res.write("</d:multistatus>");
-
-                request.closeRes();
+                comm.flushResponse();
             });
     });
 
@@ -1034,9 +1014,9 @@ function handleReportCalendarQuery(request)
     * */
 }
 
-function handleReportSyncCollection(request)
+function handleReportSyncCollection(comm)
 {
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:sync-collection', {
@@ -1049,9 +1029,7 @@ function handleReportSyncCollection(request)
 
     if(node != undefined)
     {
-        request.dontCloseResAutomatically();
-
-        var calendarId = request.getPathElement(3);
+        var calendarId = comm.getPathElement(3);
 
         CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
         {
@@ -1079,7 +1057,7 @@ function handleReportSyncCollection(request)
                                 break;
 
                             case 'prop':
-                                response += handleReportCalendarProp(request, child, cal, ics);
+                                response += handleReportCalendarProp(comm, child, cal, ics);
                                 break;
 
                             default:
@@ -1090,25 +1068,23 @@ function handleReportSyncCollection(request)
 
                 }
 
-                var res = request.getRes();
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("<d:sync-token>http://swordlord.org/ns/sync/" + cal.synctoken + "</d:sync-token>");
+                comm.appendResBody("</d:multistatus>");
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write(response);
-                res.write("<d:sync-token>http://swordlord.org/ns/sync/" + cal.synctoken + "</d:sync-token>");
-                res.write("</d:multistatus>");
-
-                request.closeRes();
+                comm.flushResponse();
             });
         });
     }
 }
 
-function handleReportCalendarProp(request, node, cal, ics)
+function handleReportCalendarProp(comm, node, cal, ics)
 {
     var response = "";
 
     response += "<d:response>";
-    response += "<d:href>" + request.getURL() + ics.pkey + ".ics</d:href>";
+    response += "<d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
     response += "<d:propstat><d:prop>";
 
     var childs = node.childNodes();
@@ -1144,9 +1120,9 @@ function handleReportCalendarProp(request, node, cal, ics)
     return response;
 }
 
-function handleReportCalendarMultiget(request)
+function handleReportCalendarMultiget(comm)
 {
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/B:calendar-multiget', {
@@ -1183,9 +1159,7 @@ function handleReportCalendarMultiget(request)
             }
         }
 
-        request.dontCloseResAutomatically();
-
-        handleReportHrefs(request, arrHrefs);
+        handleReportHrefs(comm, arrHrefs);
     }
 }
 
@@ -1197,7 +1171,7 @@ function parseHrefToIcsId(href)
     return id.substr(0, id.length - 4);
 }
 
-function handleReportHrefs(request, arrIcsIds)
+function handleReportHrefs(comm, arrIcsIds)
 {
     ICS.findAndCountAll( { where: {pkey: arrIcsIds}}).then(function(result)
     {
@@ -1210,7 +1184,7 @@ function handleReportHrefs(request, arrIcsIds)
             var date = Date.parse(ics.updatedAt);
 
             response += "<d:response>";
-            response += "<d:href>" + request.getURL() + ics.pkey + ".ics</d:href>";
+            response += "<d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
             response += "<d:propstat><d:prop>";
             response += "<cal:calendar-data>" + ics.content + "</cal:calendar-data>";
             response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";
@@ -1221,31 +1195,25 @@ function handleReportHrefs(request, arrIcsIds)
             response += "</d:response>";
         }
 
-        var res = request.getRes();
+        comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+        comm.appendResBody(response);
+        comm.appendResBody("</d:multistatus>\r\n");
 
-        res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-
-        res.write(response);
-
-        res.write("</d:multistatus>\r\n");
-
-
-        request.closeRes();
+        comm.closeRes();
     });
 }
 
-function proppatch(request)
+function proppatch(comm)
 {
     log.debug("calendar.proppatch called");
 
-    rh.setStandardHeaders(request);
+    comm.setStandardHeaders();
 
-    var res = request.getRes();
-    res.writeHead(200);
+    comm.writeHead(200);
 
-    res.write(xh.getXMLHead());
+    comm.appendResBody(xh.getXMLHead());
 
-    var body = request.getBody();
+    var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
     var node = xmlDoc.get('/A:propertyupdate/A:set/A:prop', {
@@ -1261,22 +1229,20 @@ function proppatch(request)
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO:
-    if(request.getUrlElementSize() > 4)
+    if(comm.getUrlElementSize() > 4)
     {
-        var lastPathElement = request.getFilenameFromPath(false);
-        if(request.stringEndsWith(lastPathElement, '.ics'))
+        var lastPathElement = comm.getFilenameFromPath(false);
+        if(comm.stringEndsWith(lastPathElement, '.ics'))
         {
             isRoot = false;
         }
     }
 
-    request.dontCloseResAutomatically();
-
     var response = "";
 
     if(isRoot)
     {
-        var calendarId = request.getCalIdFromURL();
+        var calendarId = comm.getCalIdFromURL();
         CAL.find({ where: {pkey: calendarId} }).then(function(cal)
         {
             if(cal === null)
@@ -1306,17 +1272,17 @@ function proppatch(request)
                     }
                 }
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write("	<d:response>\r\n");
-                res.write("		<d:href>" + request.getURL() + "</d:href>\r\n");
-                res.write("		<d:propstat>\r\n");
-                res.write("			<d:prop>\r\n");
-                res.write(response);
-                res.write("			</d:prop>\r\n");
-                res.write("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
-                res.write("		</d:propstat>\r\n");
-                res.write("	</d:response>\r\n");
-                res.write("</d:multistatus>\r\n");
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody("	<d:response>\r\n");
+                comm.appendResBody("		<d:href>" + comm.getURL() + "</d:href>\r\n");
+                comm.appendResBody("		<d:propstat>\r\n");
+                comm.appendResBody("			<d:prop>\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("			</d:prop>\r\n");
+                comm.appendResBody("			<d:status>HTTP/1.1 403 Forbidden</d:status>\r\n");
+                comm.appendResBody("		</d:propstat>\r\n");
+                comm.appendResBody("	</d:response>\r\n");
+                comm.appendResBody("</d:multistatus>\r\n");
             }
             else
             {
@@ -1368,29 +1334,29 @@ function proppatch(request)
                     log.warn('cal saved');
                 });
 
-                res.write("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
-                res.write("	<d:response>\r\n");
-                res.write("		<d:href>" + request.getURL() + "</d:href>\r\n");
-                res.write("		<d:propstat>\r\n");
-                res.write("			<d:prop>\r\n");
-                res.write(response);
-                res.write("			</d:prop>\r\n");
-                res.write("			<d:status>HTTP/1.1 200 OK</d:status>\r\n");
-                res.write("		</d:propstat>\r\n");
-                res.write("	</d:response>\r\n");
-                res.write("</d:multistatus>\r\n");
+                comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\" xmlns:ical=\"http://apple.com/ns/ical/\">\r\n");
+                comm.appendResBody("	<d:response>\r\n");
+                comm.appendResBody("		<d:href>" + comm.getURL() + "</d:href>\r\n");
+                comm.appendResBody("		<d:propstat>\r\n");
+                comm.appendResBody("			<d:prop>\r\n");
+                comm.appendResBody(response);
+                comm.appendResBody("			</d:prop>\r\n");
+                comm.appendResBody("			<d:status>HTTP/1.1 200 OK</d:status>\r\n");
+                comm.appendResBody("		</d:propstat>\r\n");
+                comm.appendResBody("	</d:response>\r\n");
+                comm.appendResBody("</d:multistatus>\r\n");
             }
 
-            request.closeRes();
+            comm.closeRes();
         });
     }
 }
 
-function returnOutbox(request)
+function returnOutbox(comm)
 {
     var response = "";
 
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     response += "<d:response>";
     response += "   <d:href>/cal/" + username + "/outbox/</d:href>";
@@ -1445,11 +1411,11 @@ function returnOutbox(request)
     return response;
 }
 
-function returnNotifications(request)
+function returnNotifications(comm)
 {
     var response = "";
 
-    var username = request.getUser().getUserName();
+    var username = comm.getUser().getUserName();
 
     response += "<d:response>";
     response += "<d:href>/cal/" + username + "/notifications/</d:href>";
