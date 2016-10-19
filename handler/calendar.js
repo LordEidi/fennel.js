@@ -777,7 +777,6 @@ function makeCalendar(comm)
     });
 
     var childs = node.childNodes();
-    var res = comm.getRes();
 
     var timezone;
     var order;

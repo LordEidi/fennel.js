@@ -12,6 +12,8 @@ var log = require('../libs/log').log;
 var userLib = require('../libs/user');
 var url = require('url');
 
+var pd = require('pretty-data').pd;
+
 // Exporting.
 /**
  *
@@ -63,8 +65,16 @@ comm.prototype.setResponseCode = function(responseCode)
  */
 comm.prototype.flushResponse = function()
 {
-    log.info("Returning response: " + this.resBody);
-    this.res.write(this.resBody);
+    // prettify XML when we have XML in the body
+    var response = this.resBody;
+
+    if(response.substr(0, 5) === "<?xml")
+    {
+        response = pd.xml(this.resBody);
+    }
+
+    log.info("Returning response: " + response);
+    this.res.write(response);
     this.res.end();
 };
 
