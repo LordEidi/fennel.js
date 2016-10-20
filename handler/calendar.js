@@ -1202,7 +1202,7 @@ function handleReportHrefs(comm, arrIcsIds)
         comm.appendResBody(response);
         comm.appendResBody("</d:multistatus>\r\n");
 
-        comm.closeRes();
+        comm.flushResponse();
     });
 }
 
@@ -1212,7 +1212,7 @@ function proppatch(comm)
 
     comm.setStandardHeaders();
 
-    comm.writeHead(200);
+    comm.setResponseCode(200);
 
     comm.appendResBody(xh.getXMLHead());
 
@@ -1350,7 +1350,7 @@ function proppatch(comm)
                 comm.appendResBody("</d:multistatus>\r\n");
             }
 
-            comm.closeRes();
+            comm.flushResponse();
         });
     }
 }
