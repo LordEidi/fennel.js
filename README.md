@@ -12,14 +12,13 @@ It does have some dependencies regarding JavaScript libraries, but all of these 
 
 If you are looking for a lightweight CalDAV / CardDAV, **Fennel** might be for you:
 
-- authentication is meant to be pluggable. While we concentrate on CourierAuth, you can add whatever can check a
+- authentication is meant to be pluggable. While we concentrate on CourierAuth and .htaccess, you can add whatever can check a
 username and password.
 - the data storage backend is meant to be pluggable as well. While we start with SQLite3, we do use an ORM. Whatever
-database can be used with *Sequelize* can be used as storage backend for **Fennel**. You just have to change the setting
+database can be used with *Sequelize* can be used as storage backend for **Fennel**. You just have to change the settings
 accordingly.
 - instead of inventing the wheel, we prefer to use some of those fine node.js based libraries.
-- and after all, Fennel is OSS and is written in JavaScript. Whatever you do not like, you are free to replace / rewrite.
-
+- and after all, **Fennel** is OSS and is written in JavaScript. Whatever you do not like, you are free to replace / rewrite. Just respect the licence and give back.
 
 ## Status ##
 
@@ -34,7 +33,7 @@ accordingly.
 What's missing:
 
 - different clients (we will somewhen test with other clients, but we did not do thoroughly yet)
-
+- Test cases for everything. We would love to have test cases for as many scenarios and features as possible. It is a pain in the neck to test **Fennel** otherwise.
 
 ## Installation ##
 
@@ -178,9 +177,11 @@ Point your CalDAV and CardDAV client to the root of **Fennel**. All the rest sho
 
 There are a few test cases to check the working of **Fennel**. Make sure to
 
-- run "npm install -g tape" to install needed dependencies.
-- run an instance of **Fennel**.
 - check your configuration, especially the test user and password.
+- run an instance of **Fennel**.
+- run: npm test
+
+You can find the test cases in the test directory. All cases are made to be run against your (local) copy of **Fennel**.
 
 
 ## Contribution ##
@@ -193,7 +194,7 @@ helping hands we have, as quicker this server gets up and feature complete.
 
 For now, have a look at the package.json file.
 
-If you run the test cases, make sure to first run "npm install -g tape".
+If you run the test cases, make sure that you installed the dev dependencies...
 
 
 ## License ##

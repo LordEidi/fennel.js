@@ -144,19 +144,23 @@ function put(comm)
             {
                 log.debug('If-None-Match matches, return status code 412');
 
+                comm.setStandardHeaders();
 
-            // TODO: check for  'If-None-Match': '*' Header and reply with a Status Code 412 and an error
-            // since caller does not want to replace / change the ICS but only create new records
-            /*
-                <?xml version='1.0' encoding='utf-8'?>
-                <d:error xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns">
-                  <s:sabredav-version>3.1.0-alpha2</s:sabredav-version>
-                  <s:exception>Sabre\DAV\Exception\PreconditionFailed</s:exception>
-                  <s:message>An If-None-Match header was specified, but the ETag matched (or * was
-                specified).</s:message>
-                  <s:header>If-None-Match</s:header>
-                </d:error>
-             */
+                var date = new Date();
+                comm.setHeader("ETag", Number(date));
+
+                comm.setResponseCode(412);
+
+                comm.appendResBody(xh.getXMLHead());
+
+                comm.appendResBody("<d:error xmlns:d=\"DAV:\" xmlns:s=\"http://swordlord.org/ns\">");
+                comm.appendResBody("<s:exception>Fennel\DAV\Exception\PreconditionFailed</s:exception>");
+                comm.appendResBody("<s:message>An If-None-Match header was specified, but the ETag matched (or * was specified).</s:message>");
+                comm.appendResBody("<s:header>If-None-Match</s:header>");
+                comm.appendResBody("</d:error>");
+
+                comm.flushResponse();
+                return;
             }
             else
             {
@@ -180,16 +184,16 @@ function put(comm)
                     });
                 }
             });
+
+            comm.setStandardHeaders();
+
+            var date = new Date();
+            comm.setHeader("ETag", Number(date));
+
+            comm.setResponseCode(201);
+            comm.flushResponse();
         });
     });
-
-    comm.setStandardHeaders();
-
-    var date = new Date();
-    comm.setHeader("ETag", Number(date));
-
-    comm.setResponseCode(201);
-    comm.flushResponse();
 }
 
 function move(comm)
