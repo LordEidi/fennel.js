@@ -144,7 +144,7 @@ var server = http.createServer(basic, function (req, res)
         var comm = new communication(req, res, reqBody);
 
         var sUrl = url.parse(req.url).pathname;
-        log.info("URL requested: " + sUrl);
+        log.debug("Request body: " + reqBody);
         crossroads.parse(sUrl, [comm]);
     });
 });
@@ -153,7 +153,8 @@ server.listen(config.port);
 
 server.on('error', function (e)
 {
-    log.debug("Error: " + e);
+    log.warn('Caught error: ' + e.message);
+    log.debug(e.stack);
 });
 
 process.on('uncaughtException', function(err)
