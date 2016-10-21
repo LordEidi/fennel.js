@@ -171,7 +171,7 @@ comm.prototype.getURLAsArray = function()
     var aUrl = url.parse(this.req.url).pathname.split("/");
     if(aUrl.length <= 0)
     {
-        log.warn('Something evil happened in calendar.put!');
+        log.warn('Something evil happened in comm.getUrlAsArray!');
         return undefined;
     }
 
@@ -250,5 +250,10 @@ comm.prototype.getCalIdFromURL = function()
 comm.prototype.getCardIdFromURL = function()
 {
     return this.card;
+};
+
+comm.prototype.getUserIdFromURL = function()
+{
+    return this.username;
 };
 

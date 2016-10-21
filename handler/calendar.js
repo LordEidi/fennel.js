@@ -247,14 +247,6 @@ function propfind(comm)
 {
     log.debug("calendar.propfind called");
 
-    comm.setStandardHeaders();
-    comm.setDAVHeaders();
-
-    comm.setResponseCode(207);
-    comm.appendResBody(xh.getXMLHead());
-
-    var response = "";
-
     var body = comm.getReqBody();
     var xmlDoc = xml.parseXml(body);
 
@@ -266,19 +258,51 @@ function propfind(comm)
     });
     var childs = node.childNodes();
 
-    var isRoot = true;
     var username = comm.getUser().getUserName();
 
-    // if last element === username, then get all calendar info of user, otherwise only from that specific calendar
-    //var lastelement = comm.getLastPathElement();
+    /*
+    How to handle PROPFIND Requests
+    We handle these cases:
+        - 1 /cal/USER/
+        - 2 /cal/USER/CALENDAR_ID/
+        - 3 /cal/USER/notifications/
+        - 4 /cal/USER/inbox/
+    */
+
+    // find out if this PROPFIND request is for a specific user (1)
+    if(comm.getUrlElementSize() === 4)
+    {
+        // get all calendar info of user
+        handlePropfindForUser(comm);
+        return;
+    }
+
+    var arrURL = comm.getURLAsArray();
+    if(arrURL.length === 5)
+    {
+        // get all details from specified calendar
+        var calendarId = arrURL[3];
+        switch (calendarId) {
+            case 'notifications':
+                handlePropfindForCalendarNotifications(comm);
+                break;
+            case 'inbox':
+                handlePropfindForCalendarInbox(comm);
+                break;
+            case 'outbox':
+                handlePropfindForCalendarOutbox(comm);
+                break;
+            default:
+                handlePropfindForCalendarId(comm, calendarId);
+                break;
+        }
+
+        return;
+    }
 
     // if URL element size === 4, this is a call for the root URL of a user.
     // TODO:
-    if(comm.getUrlElementSize() > 4)
-    {
-        isRoot = false;
-    }
-    else if(comm.getURL() === "/")
+    if(comm.getURL() === "/")
     {
         response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
 
@@ -313,105 +337,182 @@ function propfind(comm)
         return;
     }
 
-    if(isRoot === true)
+}
+
+/**
+ *
+ * @param comm
+ */
+function handlePropfindForCalendarInbox(comm)
+{
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
+
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
+
+    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+    comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
+    comm.appendResBody("</d:response>");
+    comm.appendResBody("</d:multistatus>");
+
+    comm.flushResponse();
+}
+
+function handlePropfindForCalendarOutbox(comm)
+{
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
+
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
+
+    var response = returnOutbox(comm);
+    comm.appendResBody(response);
+    comm.flushResponse();
+}
+
+function handlePropfindForCalendarNotifications(comm)
+{
+    // response += returnNotifications(comm);
+    // comm.appendResBody(response);
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
+
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
+
+    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+    comm.appendResBody("<d:response><d:href>/cal/" + comm.getUserIdFromURL() + "/inbox/</d:href>");
+    comm.appendResBody("</d:response>");
+    comm.appendResBody("</d:multistatus>");
+
+    comm.flushResponse();
+}
+
+function handlePropfindForCalendarId(comm, calendarId)
+{
+    CAL.find({ where: {pkey: calendarId} }).then(function(cal)
     {
-        var nodeChecksum = xmlDoc.get('/A:propfind/A:prop/C:checksum-versions', {   A: 'DAV:',
+        comm.setStandardHeaders();
+        comm.setDAVHeaders();
+
+        comm.setResponseCode(207);
+        comm.appendResBody(xh.getXMLHead());
+
+        if(cal === null)
+        {
+            log.warn('Calendar not found');
+        }
+        else
+        {
+            // for every ICS element, return the props...
+            var xmlDoc = xml.parseXml(comm.getReqBody());
+
+            var node = xmlDoc.get('/A:propfind/A:prop', {   A: 'DAV:',
+                B: "urn:ietf:params:xml:ns:caldav",
+                C: 'http://calendarserver.org/ns/',
+                D: "http://apple.com/ns/ical/",
+                E: "http://me.com/_namespace/"
+            });
+            var childs = node.childNodes();
+
+            var response = returnPropfindElements(comm, cal, childs);
+            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+            comm.appendResBody(response);
+            comm.appendResBody("</d:multistatus>");
+
+            /*
+            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+            comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
+
+            if(response.length > 0)
+            {
+                comm.appendResBody("<d:propstat>");
+                comm.appendResBody("<d:prop>");
+                comm.appendResBody(response);
+                comm.appendResBody("</d:prop>");
+                comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
+                comm.appendResBody("</d:propstat>");
+            }
+
+            comm.appendResBody("</d:response>");
+            comm.appendResBody("</d:multistatus>");
+            */
+        }
+
+        comm.flushResponse();
+    });
+}
+
+/**
+ *
+ * @param comm
+ */
+function handlePropfindForUser(comm)
+{
+    comm.setStandardHeaders();
+    comm.setDAVHeaders();
+
+    comm.setResponseCode(207);
+    comm.appendResBody(xh.getXMLHead());
+
+    var response = "";
+
+    var xmlDoc = xml.parseXml(comm.getReqBody());
+    var nodeChecksum = xmlDoc.get('/A:propfind/A:prop/C:checksum-versions', {   A: 'DAV:',
+        B: "urn:ietf:params:xml:ns:caldav",
+        C: 'http://calendarserver.org/ns/',
+        D: "http://apple.com/ns/ical/",
+        E: "http://me.com/_namespace/"
+    });
+
+    if(nodeChecksum !== undefined)
+    {
+        response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
+        response += "<d:response><d:href>" + comm.getURL() + "</d:href></d:response>";
+        response += "</d:multistatus>";
+        comm.appendResBody(response);
+        comm.flushResponse();
+    }
+    else
+    {
+        // for every ICS element, return the props...
+        var xmlDoc = xml.parseXml(comm.getReqBody());
+
+        var node = xmlDoc.get('/A:propfind/A:prop', {   A: 'DAV:',
             B: "urn:ietf:params:xml:ns:caldav",
             C: 'http://calendarserver.org/ns/',
             D: "http://apple.com/ns/ical/",
             E: "http://me.com/_namespace/"
         });
+        var childs = node.childNodes();
 
-        if(nodeChecksum !== undefined)
+        // first get the root node info
+        response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
+        response += getCalendarRootNodeResponse(comm, childs);
+
+        var username = comm.getUserIdFromURL();
+
+        // then add info for all further known calendars of same user
+        var query = { where: {owner: username}, order: [['order', 'ASC']] };
+
+        CAL.findAndCountAll({ where: {owner: username}, order: [['order', 'ASC']] }).then(function(result)
         {
-            response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
-            response += "<d:response><d:href>" + comm.getURL() + "</d:href></d:response>";
+            for (var i=0; i < result.count; ++i)
+            {
+                var calendar = result.rows[i];
+
+                response += returnCalendar(comm, calendar, childs);
+            }
+
+            response += returnOutbox(comm);
+            response += returnNotifications(comm);
+
             response += "</d:multistatus>";
             comm.appendResBody(response);
             comm.flushResponse();
-        }
-        else
-        {
-            // first get the root node info
-            response += "<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">";
-            response += getCalendarRootNodeResponse(comm, childs);
-
-            // then add info for all further known calendars of same user
-            var query = { where: {owner: username}, order: [['order', 'ASC']] };
-
-            CAL.findAndCountAll({ where: {owner: username}, order: [['order', 'ASC']] }).then(function(result)
-            {
-                for (var i=0; i < result.count; ++i)
-                {
-                    var calendar = result.rows[i];
-
-                    response += returnCalendar(comm, calendar, childs);
-                }
-
-                response += returnOutbox(comm);
-                response += returnNotifications(comm);
-
-                response += "</d:multistatus>";
-                comm.appendResBody(response);
-                comm.flushResponse();
-            });
-        }
-    }
-    else
-    {
-        // otherwise get that specific calendar information
-        var calendarId = comm.getCalIdFromURL();
-        if(calendarId === "notifications")
-        {
-//            response += returnNotifications(comm);
-//            comm.appendResBody(response);
-
-            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-            comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
-            comm.appendResBody("</d:response>");
-            comm.appendResBody("</d:multistatus>");
-
-            comm.flushResponse();
-        }
-        else if(calendarId === "outbox")
-        {
-            response += returnOutbox(comm);
-            comm.appendResBody(response);
-            comm.flushResponse();
-        }
-        else
-        {
-            CAL.find({ where: {pkey: calendarId} }).then(function(cal)
-            {
-                if(cal === null)
-                {
-                    log.warn('Calendar not found');
-                }
-                else
-                {
-                    // for every ICS element, return the props...
-                    response += returnPropfindElements(comm, cal, childs);
-
-                    comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-                    comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
-
-                    if(response.length > 0)
-                    {
-                        comm.appendResBody("<d:propstat>");
-                        comm.appendResBody("<d:prop>");
-                        comm.appendResBody(response);
-                        comm.appendResBody("</d:prop>");
-                        comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
-                        comm.appendResBody("</d:propstat>");
-                    }
-
-                    comm.appendResBody("</d:response>");
-                    comm.appendResBody("</d:multistatus>");
-                }
-
-                comm.flushResponse();
-            });
-        }
+        });
     }
 }
 
@@ -1317,7 +1418,7 @@ function proppatch(comm)
                             break;
 
                         case 'calendar-color':
-                            response += "<ical:calendar-color>" + child.text() + "</ical:calendar-color>;
+                            response += "<ical:calendar-color>" + child.text() + "</ical:calendar-color>";
                             cal.colour = child.text();
                             break;
 
