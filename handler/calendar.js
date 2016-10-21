@@ -1307,7 +1307,7 @@ function proppatch(comm)
                             break;
 
                         case 'displayname':
-                            response += "<cal:displayname/>";
+                            response += "<cal:displayname>" + child.text() + "</cal:displayname>";
                             cal.displayname = child.text();
                             break;
 
@@ -1317,7 +1317,7 @@ function proppatch(comm)
                             break;
 
                         case 'calendar-color':
-                            response += "<ical:calendar-color/>";
+                            response += "<ical:calendar-color>" + child.text() + "</ical:calendar-color>;
                             cal.colour = child.text();
                             break;
 
