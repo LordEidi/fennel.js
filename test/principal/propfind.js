@@ -38,12 +38,52 @@ var config = require('../../config').config;
 var username = config.test_user_name;
 var password = config.test_user_pwd;
 
-test('Calling OPTIONS on principal', function (t) {
+test('Calling PROPFIND on principal user', function (t) {
 
-    t.plan(2);
+    t.plan(1);
 
-    /*
-    PROPFIND /principals/uid/_userid_/ HTTP/1.1
+    var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
+    payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
+    payload += "<A:prop>\n\r";
+    payload += "<D:addressbook-home-set xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\n\r";
+    payload += "<D:directory-gateway xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\n\r";
+    payload += "<A:displayname/>\n\r";
+    payload += "<B:calendar-user-address-set xmlns:B=\"urn:ietf:params:xml:ns:caldav\"/>\n\r";
+    payload += "<C:email-address-set xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
+    payload += "<A:principal-collection-set/>\n\r";
+    payload += "<A:principal-URL/>\n\r";
+    payload += "<A:resource-id/>\n\r";
+    payload += "<A:supported-report-set/>\n\r";
+    payload += "</A:prop>\n\r";
+    payload += "</A:propfind>\n\r";
+
+    var options = {
+        method: 'PROPFIND',
+        uri: "http://" + config.ip + ":" + config.port + "/p/" + username + "/",
+        auth: {
+            'user': username,
+            'pass': password,
+            'sendImmediately': true
+        } ,
+        body: payload,
+        followRedirect: false
+    }
+
+    request(options, function (error, response, body) {
+
+        if (!error) {
+            t.equal(response.statusCode, 207, "StatusCode matches");
+            //t.equal(response.headers.allow, "OPTIONS, PROPFIND, HEAD, GET, REPORT, PROPPATCH, PUT, DELETE, POST, COPY, MOVE", "Options match");
+            console.log(body);
+        }
+        else {
+            t.fail();
+        }
+    });
+});
+
+/*
+ PROPFIND /principals/uid/_userid_/ HTTP/1.1
 
  <?xml version="1.0" encoding="UTF-8"?>
  <A:propfind xmlns:A="DAV:">
@@ -58,32 +98,7 @@ test('Calling OPTIONS on principal', function (t) {
  <A:supported-report-set/>
  </A:prop>
  </A:propfind>
-*/
-    var options = {
-        method: 'OPTIONS',
-        uri: "http://" + config.ip + ":" + config.port + "/p/",
-        auth: {
-            'user': username,
-            'pass': password,
-            'sendImmediately': true
-        } ,
-        body: "",
-        followRedirect: false
-    }
-
-    request(options, function (error, response, body) {
-
-        if (!error) {
-            t.equal(response.statusCode, 200, "StatusCode matches");
-            t.equal(response.headers.allow, "OPTIONS, PROPFIND, HEAD, GET, REPORT, PROPPATCH, PUT, DELETE, POST, COPY, MOVE", "Options match");
-            console.log(body);
-        }
-        else {
-            t.fail();
-        }
-    });
-});
-
+ */
 
 /*
 *
