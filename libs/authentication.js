@@ -82,13 +82,13 @@ function processLine(line)
     pwdhash = lineSplit.join(":");
 
     return new htaccessLine(username, pwdhash);
-};
+}
 
 function htaccessLine(user, hash)
 {
     this.username = user;
     this.passwordhash = hash;
-};
+}
 
 function checkCourier(username, password, callback)
 {
