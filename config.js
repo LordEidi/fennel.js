@@ -43,10 +43,12 @@ var config =
     ip: '127.0.0.1',
     //ip: '0.0.0.0',
 
-    // authentication methods so far: courier, htaccess
-    auth_method: 'htaccess',
+    // authentication methods so far: courier, htaccess, ldap
+    auth_method: 'ldap',
     auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
     auth_method_htaccess_file: 'demouser.htaccess',
+    auth_method_ldap_url: 'ldap://localhost:3002',
+    auth_method_ldap_user_base_dn: 'ou=users,dc=example',
 
     // db specific configuration. you can use whatever sequelize supports.
     db_name: 'fennel',

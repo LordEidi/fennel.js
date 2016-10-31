@@ -13,6 +13,7 @@ var config = require('../config').config;
 
 var fs = require('fs');
 var path = require('path');
+var ldapjs = require('ldapjs');
 
 function checkLogin(basicAuth, username, password, callback)
 {
@@ -26,6 +27,10 @@ function checkLogin(basicAuth, username, password, callback)
 
         case 'htaccess':
             checkHtaccess(basicAuth, username, password, callback);
+            break;
+
+        case 'ldap':
+            checkLDAP(username, password, callback);
             break;
 
         default:
@@ -115,6 +120,28 @@ function checkCourier(username, password, callback)
     client.on('end', function() {
         var result = response.indexOf('FAIL', 0);
         callback(result < 0);
+    });
+}
+
+function checkLDAP(username, password, callback)
+{
+    log.debug('Authenticating user with ldap method.');
+
+    var ldapClient = ldapjs.createClient({ url: config.auth_method_ldap_url });
+    ldapClient.on('error', function (error) {
+        log.warn('LDAP error', error);
+        callback(false);
+    });
+
+    var ldapDn = 'cn=' + username + ',' + config.auth_method_ldap_user_base_dn;
+    ldapClient.bind(ldapDn, password, function (error) {
+        if (error) {
+            log.warn('User could not be logged in. Wrong username or password: ' + username);
+            callback(false);
+        } else {
+            log.info('User logged in: ' + username);
+            callback(true);
+        }
     });
 }
 
