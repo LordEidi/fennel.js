@@ -44,7 +44,7 @@ var config =
     //ip: '0.0.0.0',
 
     // authentication methods so far: courier, htaccess, ldap
-    auth_method: 'ldap',
+    auth_method: 'htaccess',
     auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
     auth_method_htaccess_file: 'demouser.htaccess',
     auth_method_ldap_url: 'ldap://localhost:3002',
