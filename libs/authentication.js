@@ -28,6 +28,10 @@ function checkLogin(basicAuth, username, password, callback)
             checkHtaccess(basicAuth, username, password, callback);
             break;
 
+        case 'ldap':
+            checkLDAP(username, password, callback);
+            break;
+
         default:
             log.info("No authentication method defined. Denying access.");
             callback(false);
@@ -82,13 +86,13 @@ function processLine(line)
     pwdhash = lineSplit.join(":");
 
     return new htaccessLine(username, pwdhash);
-};
+}
 
 function htaccessLine(user, hash)
 {
     this.username = user;
     this.passwordhash = hash;
-};
+}
 
 function checkCourier(username, password, callback)
 {
@@ -115,6 +119,37 @@ function checkCourier(username, password, callback)
     client.on('end', function() {
         var result = response.indexOf('FAIL', 0);
         callback(result < 0);
+    });
+}
+
+function checkLDAP(username, password, callback)
+{
+    var ldapjs;
+
+    log.debug('Authenticating user with ldap method.');
+
+    try {
+        ldapjs = require('ldapjs');
+    } catch (e) {
+        log.error('ldapjs@1.0.0 node module not found');
+        return callback(false);
+    }
+
+    var ldapClient = ldapjs.createClient({ url: config.auth_method_ldap_url });
+    ldapClient.on('error', function (error) {
+        log.warn('LDAP error', error);
+        callback(false);
+    });
+
+    var ldapDn = 'cn=' + username + ',' + config.auth_method_ldap_user_base_dn;
+    ldapClient.bind(ldapDn, password, function (error) {
+        if (error) {
+            log.warn('User could not be logged in. Wrong username or password: ' + username);
+            callback(false);
+        } else {
+            log.info('User logged in: ' + username);
+            callback(true);
+        }
     });
 }
 
