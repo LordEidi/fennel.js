@@ -13,7 +13,6 @@ var config = require('../config').config;
 
 var fs = require('fs');
 var path = require('path');
-var ldapjs = require('ldapjs');
 
 function checkLogin(basicAuth, username, password, callback)
 {
@@ -125,7 +124,16 @@ function checkCourier(username, password, callback)
 
 function checkLDAP(username, password, callback)
 {
+    var ldapjs;
+
     log.debug('Authenticating user with ldap method.');
+
+    try {
+        ldapjs = require('ldapjs');
+    } catch (e) {
+        log.error('ldapjs@1.0.0 node module not found');
+        return callback(false);
+    }
 
     var ldapClient = ldapjs.createClient({ url: config.auth_method_ldap_url });
     ldapClient.on('error', function (error) {
