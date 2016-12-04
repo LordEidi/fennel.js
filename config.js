@@ -35,18 +35,13 @@ var config =
 {
     version_nr: '0.1.0',
 
-    // server specific configuration
-    // please use a proxy in front of fennel to support TLS
-    // we suggest you use nginx as the TLS endpoint
+    // Server specific configuration
+    // Please use a proxy in front of Fennel to support TLS.
+    // We suggest you use nginx as the TLS endpoint
     port: 8888,
     //port: 80,
     ip: '127.0.0.1',
     //ip: '0.0.0.0',
-
-    // authentication methods so far: courier, htaccess
-    auth_method: 'htaccess',
-    auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
-    auth_method_htaccess_file: 'demouser.htaccess',
 
     // db specific configuration. you can use whatever sequelize supports.
     db_name: 'fennel',
@@ -55,6 +50,35 @@ var config =
     db_dialect: 'sqlite',
     db_logging: true,
     db_storage: 'fennel.sqlite',
+
+    // Authentication
+    // Authentication methods so far: courier, htaccess, ldap
+    auth_method: 'htaccess',
+    auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
+    auth_method_htaccess_file: 'demouser.htaccess',
+
+    // Authorisation
+    // Authorisation Rules:
+    // This property takes an array of Shiro formatted strings. Users are
+    // only permitted access to resources when said access is explicitly
+    // allowed here. Please see http://shiro.apache.org/permissions.html
+    // for a short introduction to Shiro Syntax.
+    //
+    // Fennel uses the URL + the function to check for authorisation.
+    // /card/demo/default/card_id.vcf with method PUT will become
+    // card:demo:default:card_id.vcf:put
+    //
+    // Please note that $username is not recognised by shiro-trie but
+    // will be replaced by Fennel with the current user when loaded into
+    // the current process.
+    //
+    // The current set will allow the owner to access his or her own stuff
+    authorisation: [
+        'cal:$username:*',
+        'card:$username:*',
+        'p:options,report',
+        'p:$username:*'
+    ],
 
     test_user_name: 'demo',
     test_user_pwd: 'demo'

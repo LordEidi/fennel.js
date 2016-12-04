@@ -98,6 +98,16 @@ function onHitPrincipal(comm, params)
 {
     comm.params = params;
 
+    // check authorisation
+    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    {
+        var res = comm.getRes();
+        log.info("Request is denied to this user");
+        res.writeHead(403);
+        res.write("Request is denied to this user");
+        return;
+    }
+
     handler.handlePrincipal(comm);
 }
 
@@ -107,6 +117,16 @@ function onHitCalendar(comm, username, cal, params)
     comm.cal = cal;
     comm.params = params;
 
+    // check authorisation
+    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    {
+        var res = comm.getRes();
+        log.info("Request is denied to this user");
+        res.writeHead(403);
+        res.write("Request is denied to this user");
+        return;
+    }
+
     handler.handleCalendar(comm);
 }
 
@@ -115,6 +135,16 @@ function onHitCard(comm, username, card, params)
     comm.username = username;
     comm.card = card;
     comm.params = params;
+
+    // check authorisation
+    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    {
+        var res = comm.getRes();
+        log.info("Request is denied to this user");
+        res.writeHead(403);
+        res.write("Request is denied to this user");
+        return;
+    }
 
     handler.handleCard(comm);
 }

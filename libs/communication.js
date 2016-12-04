@@ -9,10 +9,15 @@
  -----------------------------------------------------------------------------*/
 
 var log = require('../libs/log').log;
+var config = require('../config').config;
+
 var userLib = require('../libs/user');
 var url = require('url');
 
 var pd = require('pretty-data').pd;
+
+// shiro-trie object for authorisation checks
+var st = require('shiro-trie');
 
 // Exporting.
 /**
@@ -46,6 +51,17 @@ function comm(req, res, reqBody)
     var username = parts[0];
 
     this.user = new userLib.user(username);
+
+    this.authority = st.new();
+
+    // get shiro-trie configuration from config file
+    var arrAuthorisation = config.authorisation;
+
+    for(var i = 0; i < arrAuthorisation.length; i++)
+    {
+        var el = arrAuthorisation[i];
+        this.authority.add(el.replace("$username", username));
+    }
 
     return this;
 }
@@ -136,6 +152,33 @@ comm.prototype.getUser = function()
     this.user = user;
 };
 */
+
+comm.prototype.getAuthority = function()
+{
+    return this.authority;
+};
+
+/**
+ * Give an URL and method and this function will tell you if this user is authorised to access that resource
+ * @param strURL
+ * @param strMethod
+ * @returns {*}
+ */
+comm.prototype.checkAuthority = function(strURL, strMethod)
+{
+    // make sure to change the URL syntax to the shiro syntax
+    // which means /my/url/ becomes my:url
+    // that filter(String) hack makes sure that there are no empty elements,
+    // like you get when splitting a / terminated URL...
+    var s = strURL.substr(1).split("/").filter(String).join(":") + ":" + strMethod.toLowerCase();
+
+    // have the shiro string checked against the authorisation set...
+    var ret = this.authority.check(s);
+
+    log.debug("Checking authority for user '" + this.getUser().getUserName() + "' for '" + s + "' with result: " + ret);
+
+    return ret;
+};
 
 comm.prototype.getReq = function()
 {
