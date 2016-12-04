@@ -57,6 +57,11 @@ var config =
     auth_method_courier_socket: '/var/run/courier/authdaemon/socket',
     auth_method_htaccess_file: 'demouser.htaccess',
 
+    // ldap authentication requires the ldapjs@1.0.0 node module. Please install manually
+    auth_method_ldap_url: 'ldap://localhost:3002',
+    auth_method_ldap_user_base_dn: 'ou=users,dc=example',
+
+
     // Authorisation
     // Authorisation Rules:
     // This property takes an array of Shiro formatted strings. Users are
