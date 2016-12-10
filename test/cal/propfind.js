@@ -39,9 +39,9 @@ var config = require('../../config').config;
 var username = config.test_user_name;
 var password = config.test_user_pwd;
 
-test('Calling PROPFIND getctag and synctoken on calendar with ID', function (t) {
+test('Calling PROPFIND getctag and synctoken on calendar with existent ID', function (t) {
 
-    t.plan(2);
+    t.plan(5);
 
     var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
     payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
@@ -72,9 +72,17 @@ test('Calling PROPFIND getctag and synctoken on calendar with ID', function (t) 
 
             var xmlDoc = xml.parseXml(body);
 
-            var nodeSynctoken = xmlDoc.get('/D:multistatus/D:sync-token', {   D: 'DAV:' } );
+            var nodegetctag = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/CS:getctag', {   D: 'DAV:', CS: 'http://calendarserver.org/ns/' } );
+            t.doesNotEqual(nodegetctag, undefined, "getctag node exists");
 
+            var nodeSynctoken = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/D:sync-token', {   D: 'DAV:' } );
             t.doesNotEqual(nodeSynctoken, undefined, "synctoken node exists");
+
+            var nodeStatusCode = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:status', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeStatusCode, undefined, "status node exists");
+
+            t.ok(nodeStatusCode.text().match(/^HTTP\/1.1 200 OK/g), "statuscode node has right text");
+
             /*
             *   * request to the specified calendar and getctag, sync token
              <A:propfind xmlns:A="DAV:">
@@ -84,11 +92,94 @@ test('Calling PROPFIND getctag and synctoken on calendar with ID', function (t) 
              </A:prop>
              </A:propfind>
 
-             <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
-                 <d:sync-token>http://sabre.io/ns/sync/20</d:sync-token>
+
+             <d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+
+             <d:response>
+             <d:href>/cal/user/calid/</d:href>
+             <d:propstat>
+             <d:prop>
+             <cs:getctag>http://swordlord.org/ns/sync/3</cs:getctag>
+             <d:sync-token>http://swordlord.org/ns/sync/3</d:sync-token>
+             </d:prop>
+             <d:status>HTTP/1.1 200 OK</d:status>
+             </d:propstat>
+             </d:response>
+
              </d:multistatus>
+
             *
             * */
+
+
+            //console.log(body);
+        }
+        else
+        {
+            t.fail(error);
+        }
+    });
+});
+
+test('Calling PROPFIND getctag and synctoken on calendar with NON existent ID', function (t) {
+
+    t.plan(3);
+
+    var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
+    payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
+    payload += "<A:prop>\n\r";
+    payload += "<C:getctag xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
+    payload += "<A:sync-token/>\n\r";
+    payload += "</A:prop>\n\r";
+    payload += "</A:propfind>\n\r";
+
+    var options = {
+        method: 'PROPFIND',
+        uri: "http://" + config.ip + ":" + config.port + "/cal/" + username + "/DOES-NOT-EXIST/",
+        auth: {
+            'user': username,
+            'pass': password,
+            'sendImmediately': true
+        } ,
+        body: payload,
+        followRedirect: false
+    }
+
+    request(options, function (error, response, body) {
+
+        if (!error)
+        {
+            t.equal(response.statusCode, 207, "StatusCode matches");
+
+            var xmlDoc = xml.parseXml(body);
+
+            var nodeStatusCode = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:status', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeStatusCode, undefined, "status node exists");
+
+            t.ok(nodeStatusCode.text().match(/^HTTP\/1.1 404/g), "statuscode node has right text");
+
+            /*
+             *   * request to the specified calendar and getctag, sync token
+             <A:propfind xmlns:A="DAV:">
+             <A:prop>
+             <C:getctag xmlns:C="http://calendarserver.org/ns/"/>
+             <A:sync-token/>
+             </A:prop>
+             </A:propfind>
+
+
+             <d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+             <d:response>
+             <d:href>/cal/user/calid/</d:href>
+             <d:propstat>
+             <d:status>HTTP/1.1 404 NOT FOUND</d:status>
+             </d:propstat>
+             </d:response>
+
+             </d:multistatus>
+
+             *
+             * */
 
 
             //console.log(body);
@@ -145,7 +236,7 @@ test('Calling PROPFIND getctag and synctoken on calendar inbox', function (t) {
              </A:prop>
              </A:propfind>
 
-             * <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+             * <d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
              <d:response>
              <d:href>/calendars/_userid_/notifications/</d:href>
              </d:response>
@@ -163,15 +254,15 @@ test('Calling PROPFIND getctag and synctoken on calendar inbox', function (t) {
     });
 });
 
-test('Calling PROPFIND getetag and notificationtype on calendar notification', function (t) {
+test('Calling PROPFIND getctag and synctoken on calendar notifications', function (t) {
 
-    t.plan(3);
+    t.plan(2);
 
     var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
     payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
     payload += "<A:prop>\n\r";
-    payload += "<A:getetag/>\n\r";
-    payload += "<C:C:notificationtype xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
+    payload += "<C:getctag xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
+    payload += "<A:sync-token/>\n\r";
     payload += "</A:prop>\n\r";
     payload += "</A:propfind>\n\r";
 
@@ -199,20 +290,24 @@ test('Calling PROPFIND getetag and notificationtype on calendar notification', f
             var nodeHref = xmlDoc.get('/D:multistatus/D:response/D:href', {   D: 'DAV:' } );
 
             t.doesNotEqual(nodeHref, undefined, "href node exists");
-
-            t.ok(nodeHref.text().match(/^\/cal\/[a-z0-9]+\/inbox\/$/g), "sync token has right URL");
             /*
+             *   * request to the inbox and getctag, sync token
+             <A:propfind xmlns:A="DAV:">
+             <A:prop>
+             <C:getctag xmlns:C="http://calendarserver.org/ns/"/>
+             <A:sync-token/>
+             </A:prop>
+             </A:propfind>
 
-             TODO: calendar.js -> line 364 is wrong. while this is a request to xx/notifications, we should return the inbox, see below
-
-             Expected Response
-
-             <d:multistatus xmlns:d="DAV:">
+             * <d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
              <d:response>
-             <d:href>/cal/user/inbox/</d:href>
+             <d:href>/calendars/_userid_/notifications/</d:href>
              </d:response>
              </d:multistatus>
+             *
              * */
+
+
             //console.log(body);
         }
         else
@@ -222,18 +317,15 @@ test('Calling PROPFIND getetag and notificationtype on calendar notification', f
     });
 });
 
+test('Calling PROPFIND getetag and notificationtype on calendar notifications', function (t) {
 
-test('Calling PROPFIND getetag and contenttype on calendar inbox', function (t) {
-
-    // and then the call for inbox and content type, calendar.js -> line 364 ff
-
-    t.plan(3);
+    t.plan(5);
 
     var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
     payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
     payload += "<A:prop>\n\r";
     payload += "<A:getetag/>\n\r";
-    payload += "<A:getcontenttype/>\n\r";
+    payload += "<C:C:notificationtype xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
     payload += "</A:prop>\n\r";
     payload += "</A:propfind>\n\r";
 
@@ -254,35 +346,72 @@ test('Calling PROPFIND getetag and contenttype on calendar inbox', function (t) 
         if (!error)
         {
             t.equal(response.statusCode, 207, "StatusCode matches");
-            // todo: Check body for correct amount of xml tags and entities
 
             var xmlDoc = xml.parseXml(body);
 
-            var nodeDisplayname = xmlDoc.get('/A:propfind/A:prop/A:displayname', {   A: 'DAV:' } );
-            t.doesNotEqual(nodeDisplayname, undefined, "displayname node exists");
+            var nodeHref = xmlDoc.get('/D:multistatus/D:response/D:href', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeHref, undefined, "href node exists");
 
-            var nodePURL = xmlDoc.get('/A:propfind/A:prop/A:principal-URL', {   A: 'DAV:' } );
-            t.doesNotEqual(nodePURL, undefined, "principal-URL node exists");
-            /*
+            t.ok(nodeHref.text().match(/^\/cal\/[a-z0-9]+\/notifications\/$/g), "href has right URL");
 
-             TODO: calendar.js -> line 364 is wrong. while this is a request to xx/notifications, we should return the inbox, see below
+            var nodeStatusCode = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:status', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeStatusCode, undefined, "status node exists");
 
-             Expected Response
+            t.ok(nodeStatusCode.text().match(/^HTTP\/1.1 200 OK/g), "statuscode node has right text");
 
-             <?xml version="1.0" encoding="UTF-8"?>
-             <A:propfind xmlns:A="DAV:">
-                 <A:prop>
-                     <F:addressbook-home-set xmlns:F="urn:ietf:params:xml:ns:carddav"/>
-                     <F:directory-gateway xmlns:F="urn:ietf:params:xml:ns:carddav"/>
-                     <A:displayname/>
-                     <C:email-address-set xmlns:C="http://calendarserver.org/ns/"/>
-                     <A:principal-collection-set/>
-                     <A:principal-URL/>
-                     <A:resource-id/>
-                     <A:supported-report-set/>
-                 </A:prop>
-             </A:propfind>
-             * */
+            //console.log(body);
+        }
+        else
+        {
+            t.fail(error);
+        }
+    });
+});
+
+test('Calling PROPFIND getetag and contenttype on calendar inbox', function (t) {
+
+    // and then the call for inbox and content type, calendar.js -> line 364 ff
+
+    t.plan(5);
+
+    var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
+    payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
+    payload += "<A:prop>\n\r";
+    payload += "<A:getetag/>\n\r";
+    payload += "<A:getcontenttype/>\n\r";
+    payload += "</A:prop>\n\r";
+    payload += "</A:propfind>\n\r";
+
+    var options = {
+        method: 'PROPFIND',
+        uri: "http://" + config.ip + ":" + config.port + "/cal/" + username + "/inbox/",
+        auth: {
+            'user': username,
+            'pass': password,
+            'sendImmediately': true
+        } ,
+        body: payload,
+        followRedirect: false
+    }
+
+    request(options, function (error, response, body) {
+
+        if (!error)
+        {
+            t.equal(response.statusCode, 207, "StatusCode matches");
+
+            var xmlDoc = xml.parseXml(body);
+
+            var nodeHref = xmlDoc.get('/D:multistatus/D:response/D:href', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeHref, undefined, "href node exists");
+
+            t.ok(nodeHref.text().match(/^\/cal\/[a-z0-9]+\/inbox\/$/g), "href has right URL");
+
+            var nodeStatusCode = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:status', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeStatusCode, undefined, "status node exists");
+
+            t.ok(nodeStatusCode.text().match(/^HTTP\/1.1 200 OK/g), "statuscode node has right text");
+
             //console.log(body);
         }
         else
@@ -313,9 +442,20 @@ query
 </A:propfind>
 
 ret
-<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
-    <d:sync-token>http://sabre.io/ns/sync/20</d:sync-token>
-</d:multistatus>
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+
+ <d:response>
+ <d:href>/cal/user/calid/</d:href>
+ <d:propstat>
+ <d:prop>
+ <cs:getctag>http://swordlord.org/ns/sync/3</cs:getctag>
+ <d:sync-token>http://swordlord.org/ns/sync/3</d:sync-token>
+ </d:prop>
+ <d:status>HTTP/1.1 200 OK</d:status>
+ </d:propstat>
+ </d:response>
+
+ </d:multistatus>
 
  * ************************************************************************************************************************************************************************************
  * ************************************************************************************************************************************************************************************
@@ -334,9 +474,9 @@ Query
 </A:propfind>
 
 ret
-<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
     <d:response>
-<d:href>/calendars/_userid_/inbox/</d:href>
+<d:href>/calendars/_userid_/notifications/</d:href>
 </d:response>
 </d:multistatus>
 
@@ -358,9 +498,9 @@ Query
 </A:propfind>
 
 ret
-<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
     <d:response>
-<d:href>/calendars/_userid_/notifications/</d:href>
+<d:href>/calendars/_userid_/inbox/</d:href>
 </d:response>
 </d:multistatus>
 
@@ -417,7 +557,7 @@ Query
 </A:propfind>
 
 ret
-<d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
+<d:multistatus xmlns:d="DAV:" xmlns:s="http://swordlord.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
     <d:response>
 <d:href>/calendars/_userid_/</d:href>
 <d:propstat>
@@ -463,14 +603,14 @@ ACTION:AUDIO&#13;
 END:VALARM&#13;
 </cal:default-alarm-vevent-date>
 <cal:default-alarm-vevent-datetime>BEGIN:VALARM&#13;
-X-WR-ALARMUID:BE74CF34-59C7-4C3E-AB63-CD3DF1051702&#13;
-UID:BE74CF34-59C7-4C3E-AB63-CD3DF1051702&#13;
+X-WR-ALARMUID:UUID1&#13;
+UID:UUID1&#13;
 TRIGGER;VALUE=DATE-TIME:19760401T005545Z&#13;
 ACTION:NONE&#13;
 END:VALARM&#13;
 </cal:default-alarm-vevent-datetime>
 <d:owner>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 </d:owner>
 <d:resourcetype>
 <d:collection/>
@@ -502,7 +642,7 @@ END:VALARM&#13;
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/108e8519-0957-4afb-a954-eb78a14d3382/</d:href>
+<d:href>/cal/_userid_/calid/</d:href>
 <d:propstat>
 <d:prop>
 <cs:allowed-sharing-modes>
@@ -571,13 +711,13 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:displayname>Tasks</d:displayname>
-<cs:getctag>http://sabre.io/ns/sync/5</cs:getctag>
+<cs:getctag>http://swordlord.org/ns/sync/5</cs:getctag>
 <cs:invite/>
 <d:owner>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 </d:owner>
 <cs:pre-publish-url>
-<d:href>https://domain/c/_userid_/108e8519-0957-4afb-a954-eb78a14d3382.ics</d:href>
+<d:href>https://domain/cal/_userid_/calid.ics</d:href>
 </cs:pre-publish-url>
 <d:resourcetype>
 <d:collection/>
@@ -626,13 +766,13 @@ END:VCALENDAR&#13;
 </d:report>
 </d:supported-report>
 </d:supported-report-set>
-<d:sync-token>http://sabre.io/ns/sync/5</d:sync-token>
+<d:sync-token>http://swordlord.org/ns/sync/5</d:sync-token>
 </d:prop>
 <d:status>HTTP/1.1 200 OK</d:status>
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/4fa1e8c7-3b9b-4511-a774-69c98ae3eb3c/</d:href>
+<d:href>/cal/_userid_/calid/</d:href>
 <d:propstat>
 <d:prop>
 <cs:allowed-sharing-modes>
@@ -701,13 +841,13 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:displayname>Calendar</d:displayname>
-<cs:getctag>http://sabre.io/ns/sync/20</cs:getctag>
+<cs:getctag>http://swordlord.org/ns/sync/20</cs:getctag>
 <cs:invite/>
 <d:owner>
 <d:href>/principals/uid/_userid_/</d:href>
 </d:owner>
 <cs:pre-publish-url>
-<d:href>https://domain/c/_userid_/4fa1e8c7-3b9b-4511-a774-69c98ae3eb3c.ics</d:href>
+<d:href>https://domain/cal/_userid_/calid.ics</d:href>
 </cs:pre-publish-url>
 <d:resourcetype>
 <d:collection/>
@@ -756,13 +896,13 @@ END:VCALENDAR&#13;
 </d:report>
 </d:supported-report>
 </d:supported-report-set>
-<d:sync-token>http://sabre.io/ns/sync/20</d:sync-token>
+<d:sync-token>http://swordlord.org/ns/sync/20</d:sync-token>
 </d:prop>
 <d:status>HTTP/1.1 200 OK</d:status>
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/84437DC2-2586-4D5D-B4C0-499EF6072152/</d:href>
+<d:href>/cal/_userid_/calid/</d:href>
 <d:propstat>
 <d:prop>
 <cs:allowed-sharing-modes>
@@ -823,13 +963,13 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:displayname>neues</d:displayname>
-<cs:getctag>http://sabre.io/ns/sync/20</cs:getctag>
+<cs:getctag>http://swordlord.org/ns/sync/20</cs:getctag>
 <cs:invite/>
 <d:owner>
 <d:href>/principals/uid/_userid_/</d:href>
 </d:owner>
 <cs:pre-publish-url>
-<d:href>https://domain/c/_userid_/84437DC2-2586-4D5D-B4C0-499EF6072152.ics</d:href>
+<d:href>https://domain/cal/_userid_/calitem.ics</d:href>
 </cs:pre-publish-url>
 <d:resourcetype>
 <d:collection/>
@@ -878,13 +1018,13 @@ END:VCALENDAR&#13;
 </d:report>
 </d:supported-report>
 </d:supported-report-set>
-<d:sync-token>http://sabre.io/ns/sync/20</d:sync-token>
+<d:sync-token>http://swordlord.org/ns/sync/20</d:sync-token>
 </d:prop>
 <d:status>HTTP/1.1 200 OK</d:status>
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/outbox/</d:href>
+<d:href>/cal/_userid_/outbox/</d:href>
 <d:propstat>
 <d:prop>
 <d:current-user-privilege-set>
@@ -905,7 +1045,7 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:owner>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 </d:owner>
 <d:resourcetype>
 <d:collection/>
@@ -933,7 +1073,7 @@ END:VCALENDAR&#13;
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/inbox/</d:href>
+<d:href>/cal/_userid_/inbox/</d:href>
 <d:propstat>
 <d:prop>
 <d:current-user-privilege-set>
@@ -960,7 +1100,7 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:owner>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 </d:owner>
 <d:resourcetype>
 <d:collection/>
@@ -998,7 +1138,7 @@ END:VCALENDAR&#13;
 </d:propstat>
 </d:response>
 <d:response>
-<d:href>/calendars/_userid_/notifications/</d:href>
+<d:href>/cal/_userid_/notifications/</d:href>
 <d:propstat>
 <d:prop>
 <d:current-user-privilege-set>
@@ -1034,7 +1174,7 @@ END:VCALENDAR&#13;
 </d:privilege>
 </d:current-user-privilege-set>
 <d:owner>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 </d:owner>
 <d:resourcetype>
 <d:collection/>
