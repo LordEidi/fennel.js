@@ -34,12 +34,13 @@ What's missing:
 
 - different clients (we will somewhen test with other clients, but we did not do thoroughly yet)
 - Test cases for everything. We would love to have test cases for as many scenarios and features as possible. It is a pain in the neck to test **Fennel** otherwise.
+- While **Fennel**'s goal is to have an RBAC based authorisation system, **Fennel** does currently only know global permissions without groups.
 
 ## Installation ##
 
 First of all, you need a Node.js installation.
 
-###nodejs on Debian###
+### nodejs on Debian ###
 
 Make sure that you have this line in your /etc/apt/sources.list file:
 
@@ -51,12 +52,12 @@ and then run:
     // eventually the next line as well
     // sudo ln -s /usr/lib/nodejs/ /usr/lib/node
 
-###nodejs on OSX with homebrew###
+### nodejs on OSX with homebrew ###
 
     brew install node
     brew install npm
 
-###Installation of **Fennel**###
+### Installation of **Fennel** ###
 
 If you want to run **Fennel** under a specific user (node), do this:
 
@@ -77,7 +78,7 @@ And then with the magic of npm get the required libraries
 
 If everything worked according to plan, you should now have a new installation of the latest **Fennel**.
 
-###Use supervisord to run **Fennel** as a service###
+### Use supervisord to run **Fennel** as a service ###
 
 Now we want to make sure that **Fennel** runs forever. First install the required software:
 
@@ -89,7 +90,7 @@ Then copy the file utilities/fennel_supervisor.conf into your local supervisor c
     
 Make sure you change the configuration to your local setup.
 
-###How to set up transport security###
+### How to set up transport security ###
 
 Since **Fennel** does not bring it's own crypto, you may need to install a TLS server in front of **Fennel**. You can do so
 with nginx, which is a lightweight http server and proxy.
@@ -147,7 +148,7 @@ Now configure a proxy configuration so that your instance of nginx will serve / 
 
 Please check this site for updates on what TLS settings currently make sense:
 
-    https://mozilla.github.io/server-side-tls/ssl-config-generator/
+[https://mozilla.github.io/server-side-tls/ssl-config-generator](https://mozilla.github.io/server-side-tls/ssl-config-generator)
 
 Now run or reset your nginx and start your instance of **Fennel**.
 
@@ -160,12 +161,22 @@ All parameters which can be configured right now are in the file *config.js*. Th
 But **Fennel** is not ready production anyway. And you are welcome to help out in adding parameters and configuration
 options.
 
-### auth_method ###
+### Authentication - auth_method ###
 
 The authentication method to use to authenticate users. Supported methods so far:
 
 - courier: use a local courier authdaemon socket. You will need to fill in this config option as well: auth_method_courier_socket
 - htaccess: use an htaccess file to authenticate the users. You will need to fill in this option as well: auth_method_htaccess_file
+
+### Authorisation ###
+
+**Fennel**'s authorisation strategy is based on the npm module shiro-trie. Permissions are written in an [Apache Shiro](http://shiro.apache.org/permissions.html)-like style.
+
+Permission is given on an URL and http method basis. Which means permissions can be given on a specific URL and method or with a wildcard character on multiple URLs and methods.
+
+When defining your own permissions, make sure to change the URL syntax to the shiro syntax. Which means that /my/url/ becomes my:url. See the standard configuration for details.
+
+While **Fennel**'s goal is to have an RBAC based authorisation system, **Fennel** does currently only know global permissions without groups. See also [Contribution](Contribution).
 
 ## How to run ##
 
@@ -186,16 +197,18 @@ You can find the test cases in the test directory. All cases are made to be run 
 
 ## Contribution ##
 
-If you happen to know how to write JavaScript, documentation or can help out with something else, drop us a note at *contact at swordlord dot com*. As more
-helping hands we have, as quicker this server gets up and feature complete.
+If you happen to know how to write JavaScript, documentation or can help out with something else, drop us a note at *contact at swordlord dot com*. As more helping hands we have, as quicker this server gets up and feature complete.
+
+If some feature is missing, just remember that this is an Open Source Project. If you need something, think about contributing it yourself...
 
 
 ## Dependencies ##
 
 For now, have a look at the package.json file.
 
-If you run the test cases, make sure that you installed the dev dependencies...
-
+If you:
+- run the test cases, make sure that you installed the dev dependencies...
+- use the LDAP authentication method, make sure to install ldapjs@1.0.0 node module with "npm install ldapjs@1.0.0".
 
 ## License ##
 
