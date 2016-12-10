@@ -164,7 +164,7 @@ comm.prototype.getAuthority = function()
  * @param strMethod
  * @returns {*}
  */
-comm.prototype.checkAuthority = function(strURL, strMethod)
+comm.prototype.checkPermission = function(strURL, strMethod)
 {
     // make sure to change the URL syntax to the shiro syntax
     // which means /my/url/ becomes my:url

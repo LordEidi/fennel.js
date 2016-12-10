@@ -94,12 +94,17 @@ function onHitWellKnown(comm, params)
     comm.flushResponse();
 }
 
+/**
+ * Gets called when /p is hit
+ * @param comm
+ * @param params
+ */
 function onHitPrincipal(comm, params)
 {
     comm.params = params;
 
     // check authorisation
-    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    if(!comm.checkPermission(comm.getURL(), comm.getReq().method))
     {
         var res = comm.getRes();
         log.info("Request is denied to this user");
@@ -111,6 +116,13 @@ function onHitPrincipal(comm, params)
     handler.handlePrincipal(comm);
 }
 
+/**
+ * Gets called when /cal is hit
+ * @param comm
+ * @param username
+ * @param cal
+ * @param params
+ */
 function onHitCalendar(comm, username, cal, params)
 {
     comm.username = username;
@@ -118,7 +130,7 @@ function onHitCalendar(comm, username, cal, params)
     comm.params = params;
 
     // check authorisation
-    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    if(!comm.checkPermission(comm.getURL(), comm.getReq().method))
     {
         var res = comm.getRes();
         log.info("Request is denied to this user");
@@ -130,6 +142,13 @@ function onHitCalendar(comm, username, cal, params)
     handler.handleCalendar(comm);
 }
 
+/**
+ * Gets called when /card is hit
+ * @param comm
+ * @param username
+ * @param card
+ * @param params
+ */
 function onHitCard(comm, username, card, params)
 {
     comm.username = username;
@@ -137,7 +156,7 @@ function onHitCard(comm, username, card, params)
     comm.params = params;
 
     // check authorisation
-    if(!comm.checkAuthority(comm.getURL(), comm.getReq().method))
+    if(!comm.checkPermission(comm.getURL(), comm.getReq().method))
     {
         var res = comm.getRes();
         log.info("Request is denied to this user");
@@ -156,12 +175,12 @@ crossroads.addRoute('/.well-known/:params*:', onHitWellKnown);
 crossroads.addRoute('/', onHitRoot);
 crossroads.bypassed.add(onBypass);
 
-// Listen on port 8888, IP defaults to 127.0.0.1
+// start the server and process requests
 var server = http.createServer(basic, function (req, res)
 {
-    //log.debug("Request started");
-	log.debug("Method: " + req.method + ", URL: " + req.url);
+    log.debug("Method: " + req.method + ", URL: " + req.url);
 
+    // will contain the whole body submitted
 	var reqBody = "";
 
     req.on('data', function (data)
