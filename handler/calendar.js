@@ -126,9 +126,20 @@ function put(comm)
     var ics_id = comm.getFilenameFromPath(true);
     var calendar = comm.getCalIdFromURL();
 
+    var body = comm.getReqBody();
+
+    //console.log(body);
+
+    var parser = require('../libs/parser');
+    var ics = parser.parseICS(body);
+
+    // TODO store dtstart and dtend per ICS record so that we can filter for this in the REPORT query
+    console.log(ics.VCALENDAR.VEVENT.DTSTART); // ->
+    console.log(ics.VCALENDAR.VEVENT.DTEND);
+
     var defaults = {
         calendarId: calendar,
-        content: comm.getReqBody()
+        content: body
     };
 
     ICS.findOrCreate({ where: {pkey: ics_id}, defaults: defaults}).spread(function(ics, created)
@@ -353,6 +364,9 @@ function handlePropfindForCalendarInbox(comm)
 
     comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
     comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
+    comm.appendResBody("<d:propstat>");
+    comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
+    comm.appendResBody("</d:propstat>");
     comm.appendResBody("</d:response>");
     comm.appendResBody("</d:multistatus>");
 
@@ -383,7 +397,10 @@ function handlePropfindForCalendarNotifications(comm)
     comm.appendResBody(xh.getXMLHead());
 
     comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    comm.appendResBody("<d:response><d:href>/cal/" + comm.getUserIdFromURL() + "/inbox/</d:href>");
+    comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
+    comm.appendResBody("<d:propstat>");
+    comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
+    comm.appendResBody("</d:propstat>");
     comm.appendResBody("</d:response>");
     comm.appendResBody("</d:multistatus>");
 
@@ -402,7 +419,16 @@ function handlePropfindForCalendarId(comm, calendarId)
 
         if(cal === null)
         {
-            log.warn('Calendar not found');
+            log.warn('Calendar not found: ' + calendarId);
+
+            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
+            comm.appendResBody("<d:response>");
+            comm.appendResBody("<d:href>/cal/" + comm.getUser().getUserName() + "/" + calendarId + "/</d:href>");
+            comm.appendResBody("<d:propstat>");
+            comm.appendResBody("<d:status>HTTP/1.1 404 Not Found</d:status>");
+            comm.appendResBody("</d:propstat>");
+            comm.appendResBody("</d:response>");
+            comm.appendResBody("</d:multistatus>");
         }
         else
         {
@@ -419,11 +445,6 @@ function handlePropfindForCalendarId(comm, calendarId)
 
             var response = returnPropfindElements(comm, cal, childs);
             comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-            comm.appendResBody(response);
-            comm.appendResBody("</d:multistatus>");
-
-            /*
-            comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
             comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
 
             if(response.length > 0)
@@ -435,10 +456,15 @@ function handlePropfindForCalendarId(comm, calendarId)
                 comm.appendResBody("<d:status>HTTP/1.1 200 OK</d:status>");
                 comm.appendResBody("</d:propstat>");
             }
-
+            else
+            {
+                // TODO: not necessarily clever to do...
+                comm.appendResBody("<d:propstat>");
+                comm.appendResBody("<d:status>HTTP/1.1 404 Not Found</d:status>");
+                comm.appendResBody("</d:propstat>");
+            }
             comm.appendResBody("</d:response>");
             comm.appendResBody("</d:multistatus>");
-            */
         }
 
         comm.flushResponse();
@@ -998,6 +1024,19 @@ function report(comm)
 
     var rootNode = xmlDoc.root();
 
+    // TODO: check filter:
+    // <B:comp-filter name=\"VCALENDAR\">\n\r";
+    //    <B:comp-filter name=\"VEVENT\">\n\r";
+    //    <B:time-range start=\"" + now.subtract(1, "h").format("YMMDD[T]HH0000[Z]") + "\"/>\n\r";
+    //    </B:comp-filter>\n\r";
+    //</B:comp-filter>\n\r
+    //
+    // BEGIN:VEVENT.
+    // DTSTART;TZID=Europe/Zurich:20161014T120000Z.
+    // DTEND;TZID=Europe/Zurich:20161014T130000Z
+    // parse when storing
+
+
     var name = rootNode.name();
     switch(name)
     {
@@ -1025,6 +1064,7 @@ function handleReportCalendarQuery(comm)
 
     CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
     {
+        // TODO: filter according to calendar-query.comp-filter
         ICS.findAndCountAll(
                 { where: {calendarId: calendarId}}
             ).then(function(result)
@@ -1057,7 +1097,7 @@ function handleReportCalendarQuery(comm)
                 {
                     var ics = result.rows[j];
 
-                    response += "<d:response><d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
+                    response += "<d:response><d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
                     response += "<d:propstat>";
                     response += "<d:prop>";
 
@@ -1188,7 +1228,7 @@ function handleReportCalendarProp(comm, node, cal, ics)
     var response = "";
 
     response += "<d:response>";
-    response += "<d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
+    response += "<d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
     response += "<d:propstat><d:prop>";
 
     var childs = node.childNodes();
@@ -1288,7 +1328,7 @@ function handleReportHrefs(comm, arrIcsIds)
             var date = Date.parse(ics.updatedAt);
 
             response += "<d:response>";
-            response += "<d:href>" + comm.getURL() + ics.pkey + ".ics</d:href>";
+            response += "<d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
             response += "<d:propstat><d:prop>";
             response += "<cal:calendar-data>" + ics.content + "</cal:calendar-data>";
             response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";

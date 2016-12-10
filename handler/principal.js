@@ -107,7 +107,7 @@ function propfind(comm)
                 response += "";
                 break;
             case 'email-address-set':
-                response += "";
+                response += "<cs:email-address-set><cs:email-address>lord test at swordlord.com</cs:email-address></cs:email-address-set>";
                 break;
             case 'resource-id':
                 response += "";
@@ -120,7 +120,7 @@ function propfind(comm)
     }
 
     comm.appendResBody("<d:multistatus xmlns:d=\"DAV:\" xmlns:cal=\"urn:ietf:params:xml:ns:caldav\" xmlns:cs=\"http://calendarserver.org/ns/\" xmlns:card=\"urn:ietf:params:xml:ns:carddav\">");
-    comm.appendResBody("<d:response>");
+    comm.appendResBody("<d:response><d:href>" + comm.getURL() + "</d:href>");
     comm.appendResBody("<d:propstat>");
     comm.appendResBody("<d:prop>");
     comm.appendResBody(response);
