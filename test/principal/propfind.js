@@ -32,6 +32,7 @@
  -----------------------------------------------------------------------------*/
 var test = require('tape');
 var request = require('request');
+var xml = require("libxmljs");
 
 var config = require('../../config').config;
 
@@ -40,22 +41,22 @@ var password = config.test_user_pwd;
 
 test('Calling PROPFIND on principal user', function (t) {
 
-    t.plan(1);
+    t.plan(9);
 
-    var payload = "<?xml version='1.0' encoding='UTF-8'?>\n\r";
-    payload += "<A:propfind xmlns:A=\"DAV:\">\n\r";
-    payload += "<A:prop>\n\r";
-    payload += "<D:addressbook-home-set xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\n\r";
-    payload += "<D:directory-gateway xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\n\r";
-    payload += "<A:displayname/>\n\r";
-    payload += "<B:calendar-user-address-set xmlns:B=\"urn:ietf:params:xml:ns:caldav\"/>\n\r";
-    payload += "<C:email-address-set xmlns:C=\"http://calendarserver.org/ns/\"/>\n\r";
-    payload += "<A:principal-collection-set/>\n\r";
-    payload += "<A:principal-URL/>\n\r";
-    payload += "<A:resource-id/>\n\r";
-    payload += "<A:supported-report-set/>\n\r";
-    payload += "</A:prop>\n\r";
-    payload += "</A:propfind>\n\r";
+    var payload = "<?xml version='1.0' encoding='UTF-8'?>\r\n";
+    payload += "<A:propfind xmlns:A=\"DAV:\">\r\n";
+    payload += "<A:prop>\r\n";
+    payload += "<D:addressbook-home-set xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\r\n";
+    payload += "<D:directory-gateway xmlns:D=\"urn:ietf:params:xml:ns:carddav\"/>\r\n";
+    payload += "<A:displayname/>\r\n";
+    payload += "<B:calendar-user-address-set xmlns:B=\"urn:ietf:params:xml:ns:caldav\"/>\r\n";
+    payload += "<C:email-address-set xmlns:C=\"http://calendarserver.org/ns/\"/>\r\n";
+    payload += "<A:principal-collection-set/>\r\n";
+    payload += "<A:principal-URL/>\r\n";
+    payload += "<A:resource-id/>\r\n";
+    payload += "<A:supported-report-set/>\r\n";
+    payload += "</A:prop>\r\n";
+    payload += "</A:propfind>\r\n";
 
     var options = {
         method: 'PROPFIND',
@@ -73,8 +74,35 @@ test('Calling PROPFIND on principal user', function (t) {
 
         if (!error) {
             t.equal(response.statusCode, 207, "StatusCode matches");
-            //t.equal(response.headers.allow, "OPTIONS, PROPFIND, HEAD, GET, REPORT, PROPPATCH, PUT, DELETE, POST, COPY, MOVE", "Options match");
-            console.log(body);
+
+            console.log(response.headers);
+            t.equal(response.headers.dav, '1, 3, extended-mkcol, calendar-access, calendar-schedule, calendar-proxy, calendarserver-sharing, calendarserver-subscribed, addressbook, access-control, calendarserver-principal-property-search', "DAV header matches");
+
+            var xmlDoc = xml.parseXml(body);
+
+            var nodeHref = xmlDoc.get('/D:multistatus/D:response/D:href', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeHref, undefined, "href node exists");
+
+            t.ok(nodeHref.text().match(/^\/p\/[a-z0-9]+\/$/g), "href has right URL");
+
+            var nodeStatusCode = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:status', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeStatusCode, undefined, "status node exists");
+
+            t.ok(nodeStatusCode.text().match(/^HTTP\/1.1 200 OK/g), "statuscode node has right text");
+
+            var nodeCalUserAddSet = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/CAL:calendar-user-address-set', {   D: 'DAV:', CAL: 'urn:ietf:params:xml:ns:caldav' } );
+            t.doesNotEqual(nodeCalUserAddSet, undefined, "calendar-user-address-set node exists");
+
+            var nodeCardABHomeSet = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/CARD:addressbook-home-set', {   D: 'DAV:', CARD: 'urn:ietf:params:xml:ns:carddav' } );
+            t.doesNotEqual(nodeCardABHomeSet, undefined, "card_addressbook_home_set node exists");
+
+            var nodeDisplayName = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/D:displayname', {   D: 'DAV:' } );
+            t.doesNotEqual(nodeDisplayName, undefined, "displayname node exists");
+
+            //var nodeEmail = xmlDoc.get('/D:multistatus/D:response/D:propstat/D:prop/CS:email-address-set', {   D: 'DAV:', CS: 'http://calendarserver.org/ns' } );
+            //t.doesNotEqual(nodeEmail, undefined, "email-address node exists");
+
+            //console.log(body);
         }
         else {
             t.fail();
@@ -83,7 +111,7 @@ test('Calling PROPFIND on principal user', function (t) {
 });
 
 /*
- PROPFIND /principals/uid/_userid_/ HTTP/1.1
+ PROPFIND /p/_userid_/ HTTP/1.1
 
  <?xml version="1.0" encoding="UTF-8"?>
  <A:propfind xmlns:A="DAV:">
@@ -104,7 +132,7 @@ test('Calling PROPFIND on principal user', function (t) {
 *
 * /PRINCIPAL/ID
 *
-query: /principals/uid/_userid_/
+query: /p/_userid_/
 <?xml version="1.0" encoding="UTF-8"?>
 <A:propfind xmlns:A="DAV:">
     <A:prop>
@@ -117,7 +145,7 @@ query: /principals/uid/_userid_/
 ret
 <d:multistatus xmlns:d="DAV:" xmlns:s="http://sabredav.org/ns" xmlns:cal="urn:ietf:params:xml:ns:caldav" xmlns:cs="http://calendarserver.org/ns/" xmlns:card="urn:ietf:params:xml:ns:carddav">
     <d:response>
-<d:href>/principals/uid/_userid_/</d:href>
+<d:href>/p/_userid_/</d:href>
 <d:propstat>
 <d:prop>
 <cal:calendar-user-address-set>
