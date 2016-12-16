@@ -165,8 +165,10 @@ options.
 
 The authentication method to use to authenticate users. Supported methods so far:
 
-- courier: use a local courier authdaemon socket. You will need to fill in this config option as well: auth_method_courier_socket
+- Courier: use a local courier authdaemon socket. You will need to fill in this config option as well: auth_method_courier_socket
 - htaccess: use an htaccess file to authenticate the users. You will need to fill in this option as well: auth_method_htaccess_file
+- LDAP: use an ldap server to authenticate users. You will need to fill in the options auth_method_ldap_url and auth_method_ldap_user_base_dn and make sure to have ldapjs@1.0.0 installed.
+
 
 ### Authorisation ###
 
