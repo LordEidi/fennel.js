@@ -15,7 +15,7 @@ var Sequelize = require('sequelize');
 
 var sequelize = new Sequelize(config.db_name, config.db_uid, config.db_pwd, {
     dialect: config.db_dialect,
-    logging: config.db_logging,
+    logging: function( info ) {if(config.db_logging){log.info(info)}}, // thanks to mdarveau for the fix
     storage: config.db_storage
 });
 
