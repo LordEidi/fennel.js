@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014-16 by
+ ** Copyright 2014-17 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -65,6 +65,25 @@ function comm(req, res, reqBody)
 
     return this;
 }
+
+/**
+ * pushes out the standard OPTIONS response headers and flushes the response
+ */
+comm.prototype.pushOptionsResponse = function()
+{
+    log.debug("pushOptionsResponse called");
+
+    // TODO comm.setstandardheader...
+    this.setHeader("Content-Type", "text/html");
+    this.setHeader("Server", "Fennel");
+
+    this.setDAVHeaders();
+    this.setAllowHeader();
+
+    this.setResponseCode(200);
+    this.flushResponse();
+};
+
 
 /**
  * Sets the response code given

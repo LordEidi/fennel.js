@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2015-17 by
+ ** Copyright 2017 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -38,13 +38,13 @@ var config = require('../../config').config;
 var username = config.test_user_name;
 var password = config.test_user_pwd;
 
-test('Calling OPTIONS on principal', function (t) {
+test('Calling OPTIONS on card', function (t) {
 
     t.plan(2);
 
     var options = {
         method: 'OPTIONS',
-        uri: "http://" + config.ip + ":" + config.port + "/p/",
+        uri: "http://" + config.ip + ":" + config.port + "/cal/" + username + "/",
         auth: {
             'user': username,
             'pass': password,

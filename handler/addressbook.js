@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2014 by
+ ** Copyright 2014-17 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **
@@ -161,7 +161,8 @@ function returnPropfindRootProps(comm, nodes, adb, rsVCARD)
                 response += getCurrentUserPrivilegeSet();
                 break;
             case 'displayname':
-                response += "";
+                // TODO: let the user change the value of displayname
+                response += "<d:displayname>Contacts</d:displayname>";
                 break;
             case 'max-image-size':
                 response += "";
@@ -277,7 +278,8 @@ function returnPropfindProps(comm, nodes, adb, rsVCARD)
                 response += getCurrentUserPrivilegeSet();
                 break;
             case 'displayname':
-                response += "";
+                // TODO: let the user change the value of displayname
+                response += "<d:displayname>Contacts</d:displayname>";
                 break;
             case 'max-image-size':
                 response += "";
@@ -599,11 +601,7 @@ function options(comm)
 {
     log.debug("principal.options called");
 
-    comm.setStandardHeaders();
-    comm.setDAVHeaders();
-
-    comm.setResponseCode(200);
-    comm.flushResponse();
+    comm.pushOptionsResponse();
 }
 
 function report(comm)

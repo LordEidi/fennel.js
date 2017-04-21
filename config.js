@@ -81,7 +81,7 @@ var config =
     authorisation: [
         'cal:$username:*',
         'card:$username:*',
-        'p:options,report',
+        'p:options,report,propfind',
         'p:$username:*'
     ],
 
