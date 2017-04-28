@@ -9,6 +9,8 @@
  -----------------------------------------------------------------------------*/
 
 var xml = require("libxmljs");
+var moment = require('moment');
+
 var xh = require("../libs/xmlhelper");
 var log = require('../libs/log').log;
 var ICS = require('../libs/db').ICS;
@@ -131,14 +133,16 @@ function put(comm)
     //console.log(body);
 
     var parser = require('../libs/parser');
-    var ics = parser.parseICS(body);
+    var pbody = parser.parseICS(body);
 
-    // TODO store dtstart and dtend per ICS record so that we can filter for this in the REPORT query
-    console.log(ics.VCALENDAR.VEVENT.DTSTART); // ->
-    console.log(ics.VCALENDAR.VEVENT.DTEND);
+    var dtStart = moment(pbody.VCALENDAR.VEVENT.DTSTART);
+    var dtEnd = moment(pbody.VCALENDAR.VEVENT.DTEND);
 
+    // store dtstart and dtend per ICS record so that we can filter for this in the REPORT query
     var defaults = {
         calendarId: calendar,
+        startDate: dtStart.toISOString(),
+        endDate:  dtEnd.toISOString(),
         content: body
     };
 
@@ -175,6 +179,9 @@ function put(comm)
             }
             else
             {
+                startDate = dtStart.toISOString();
+                endDate = dtEnd.toISOString();
+
                 ics.content = comm.getReqBody();
                 log.debug('Loaded ICS: ' + JSON.stringify(ics, null, 4));
             }
@@ -624,6 +631,7 @@ function returnPropfindElements(comm, calendar, childs)
                 response += "<d:owner><d:href>/p/" + username +"/</d:href></d:owner>";
                 break;
 
+            // TODO Fix URL
             case 'pre-publish-url':
                 response += "<cs:pre-publish-url><d:href>https://127.0.0.1/cal/" + username + "/" + calendar.pkey + "</d:href></cs:pre-publish-url>";
                 break;
@@ -1090,11 +1098,14 @@ function handleReportCalendarQuery(comm)
                 var nodeProps = nodeProp.childNodes();
                 var len = nodeProps.length;
 
+                var reqUrl = comm.getURL();
+                reqUrl += reqUrl.match("\/$") ? "" : "/";
+
                 for (var j=0; j < result.count; ++j)
                 {
                     var ics = result.rows[j];
 
-                    response += "<d:response><d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
+                    response += "<d:response><d:href>" + reqUrl + ics.pkey + ".ics</d:href>";
                     response += "<d:propstat>";
                     response += "<d:prop>";
 
@@ -1224,8 +1235,11 @@ function handleReportCalendarProp(comm, node, cal, ics)
 {
     var response = "";
 
+    var reqUrl = comm.getURL();
+    reqUrl += reqUrl.match("\/$") ? "" : "/";
+
     response += "<d:response>";
-    response += "<d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
+    response += "<d:href>" + reqUrl + ics.pkey + ".ics</d:href>";
     response += "<d:propstat><d:prop>";
 
     var childs = node.childNodes();
@@ -1324,8 +1338,11 @@ function handleReportHrefs(comm, arrIcsIds)
 
             var date = Date.parse(ics.updatedAt);
 
+            var reqUrl = comm.getURL();
+            reqUrl += reqUrl.match("\/$") ? "" : "/";
+
             response += "<d:response>";
-            response += "<d:href>" + comm.getURL() + "/" + ics.pkey + ".ics</d:href>";
+            response += "<d:href>" + reqUrl + ics.pkey + ".ics</d:href>";
             response += "<d:propstat><d:prop>";
             response += "<cal:calendar-data>" + ics.content + "</cal:calendar-data>";
             response += "<d:getetag>\"" + Number(date) + "\"</d:getetag>";

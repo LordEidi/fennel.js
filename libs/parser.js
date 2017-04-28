@@ -2,7 +2,7 @@
  **
  ** - Fennel Card-/CalDAV -
  **
- ** Copyright 2016 by
+ ** Copyright 2016-17 by
  ** SwordLord - the coding crew - http://www.swordlord.com
  ** and contributing authors
  **

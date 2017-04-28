@@ -36,7 +36,7 @@
     "moment": "^2.15.1",
     "node-regexp": "^0.1.1",
     "pretty-data": "^0.40.0",
-    "sequelize": "^3.3.2",
+    "sequelize": "^3.30.4",
     "shiro-trie": "^0.3.12",
     "sqlite3": "^3.0.8",
     "uuid": "^2.0.3",

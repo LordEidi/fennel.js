@@ -22,6 +22,8 @@ var sequelize = new Sequelize(config.db_name, config.db_uid, config.db_pwd, {
 var ICS = sequelize.define('ICS', {
     pkey: { type: Sequelize.STRING, allowNull: false, unique: true, primaryKey: true},
     calendarId: { type: Sequelize.STRING, allowNull: false},
+    startDate: { type: Sequelize.DATE, allowNull: false},
+    endDate: { type: Sequelize.DATE, allowNull: false},
     content: { type: Sequelize.TEXT, allowNull: false}
 });
 
