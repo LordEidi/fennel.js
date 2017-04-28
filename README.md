@@ -3,7 +3,7 @@ Fennel
 
 ![Fennel](https://raw.github.com/LordEidi/fennel/master/fennel_logo.png)
 
-**Fennel** (c) 2014-16 by [SwordLord - the coding crew](http://www.swordlord.com/)
+**Fennel** (c) 2014-17 by [SwordLord - the coding crew](http://www.swordlord.com/)
 
 ## Introduction ##
 
@@ -214,4 +214,4 @@ If you:
 
 ## License ##
 
-**Fennel** is published under the GNU General Public Licence version 3. See the LICENCE file for details.
+**Fennel** is published under the GNU Affero General Public Licence version 3. See the LICENCE file for details.
