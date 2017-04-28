@@ -11,7 +11,7 @@
     "carddav",
     "lightweight"
   ],
-  "license": "GPL-3.0",
+  "license": "agpl-3.0",
   "version": "0.2.0-beta",
   "main": "server.js",
   "readmeFilename": "README.md",
