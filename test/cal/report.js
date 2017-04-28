@@ -207,7 +207,7 @@ test('Calling REPORT comp-filter on calendar WITHOUT data, changeset with etags 
 
              * */
 
-            console.log(body);
+            //console.log(body);
         }
         else
         {

@@ -1029,19 +1029,6 @@ function report(comm)
 
     var rootNode = xmlDoc.root();
 
-    // TODO: check filter:
-    // <B:comp-filter name=\"VCALENDAR\">\n\r";
-    //    <B:comp-filter name=\"VEVENT\">\n\r";
-    //    <B:time-range start=\"" + now.subtract(1, "h").format("YMMDD[T]HH0000[Z]") + "\"/>\n\r";
-    //    </B:comp-filter>\n\r";
-    //</B:comp-filter>\n\r
-    //
-    // BEGIN:VEVENT.
-    // DTSTART;TZID=Europe/Zurich:20161014T120000Z.
-    // DTEND;TZID=Europe/Zurich:20161014T130000Z
-    // parse when storing
-
-
     var name = rootNode.name();
     switch(name)
     {
@@ -1054,7 +1041,7 @@ function report(comm)
             break;
 
         case 'calendar-query':
-            handleReportCalendarQuery(comm);
+            handleReportCalendarQuery(comm, xmlDoc);
             break;
 
         default:
@@ -1063,20 +1050,64 @@ function report(comm)
     }
 }
 
-function handleReportCalendarQuery(comm)
+function handleReportCalendarQuery(comm, xmlDoc)
 {
     var calendarId = comm.getCalIdFromURL();
+
+    var filter = {calendarId: calendarId};
+
+    // TODO: check filter:
+    // <B:comp-filter name=\"VCALENDAR\">\n\r";
+    //    <B:comp-filter name=\"VEVENT\">\n\r";
+    //    <B:time-range start=\"" + now.subtract(1, "h").format("YMMDD[T]HH0000[Z]") + "\"/>\n\r";
+    //    </B:comp-filter>\n\r";
+    //</B:comp-filter>\n\r
+    //
+    // BEGIN:VEVENT.
+    // DTSTART;TZID=Europe/Zurich:20161014T120000Z.
+    // DTEND;TZID=Europe/Zurich:20161014T130000Z
+    // parse when storing
+
+    var nodeFilter = xmlDoc.get('/B:calendar-query/B:filter/B:comp-filter[@name = "VCALENDAR"]/B:comp-filter[@name = "VEVENT"]/B:time-range', {
+        A: 'DAV:',
+        B: "urn:ietf:params:xml:ns:caldav",
+        C: 'http://calendarserver.org/ns/',
+        D: "http://apple.com/ns/ical/",
+        E: "http://me.com/_namespace/"
+    });
+    if(nodeFilter !== undefined)
+    {
+        var attrs = nodeFilter.attrs();
+        var len = attrs.length;
+
+        for (var i=0; i < len; i++)
+        {
+            var attr = attrs[i];
+
+            switch(attr.name())
+            {
+                case 'start':
+                    var filterStart = moment(attr.value());
+                    filter.startDate = { $gte: filterStart.toISOString() };
+                    break;
+
+                case 'end':
+                    var filterEnd = moment(attr.value());
+                    filter.endDate = { $lte: filterEnd.toISOString() };
+                    break;
+
+                default:
+                    break;
+            }
+        }
+    }
 
     CAL.find({ where: {pkey: calendarId} } ).then(function(cal)
     {
         // TODO: filter according to calendar-query.comp-filter
-        ICS.findAndCountAll(
-                { where: {calendarId: calendarId}}
+        ICS.findAndCountAll( { where: filter}
             ).then(function(result)
             {
-                var body = comm.getReqBody();
-                var xmlDoc = xml.parseXml(body);
-
                 var nodeProp = xmlDoc.get('/B:calendar-query/A:prop', {
                     A: 'DAV:',
                     B: "urn:ietf:params:xml:ns:caldav",
@@ -1101,7 +1132,7 @@ function handleReportCalendarQuery(comm)
                 var reqUrl = comm.getURL();
                 reqUrl += reqUrl.match("\/$") ? "" : "/";
 
-                for (var j=0; j < result.count; ++j)
+                for (var j=0; j < result.count; j++)
                 {
                     var ics = result.rows[j];
 
@@ -1111,7 +1142,7 @@ function handleReportCalendarQuery(comm)
 
                     var date = Date.parse(ics.updatedAt);
 
-                    for (var i=0; i < len; ++i)
+                    for (var i=0; i < len; i++)
                     {
                         var child = nodeProps[i];
                         var name = child.name();
