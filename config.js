@@ -50,6 +50,7 @@ var config =
     db_dialect: 'sqlite',
     db_logging: true,
     db_storage: 'fennel.sqlite',
+    // db_host: 'localhost', // For myql, postgres etc.
 
     // Authentication
     // Authentication methods so far: courier, htaccess, ldap
