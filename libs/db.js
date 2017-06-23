@@ -55,6 +55,30 @@ var ADDRESSBOOK = sequelize.define('ADB', {
     synctoken: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0}
 });
 
+var USER_GROUP = sequelize.define('USER_GROUP', {
+    userId: { type: Sequelize.STRING, allowNull: false, unique: false, primaryKey: true},
+    groupId: { type: Sequelize.STRING, allowNull: false, unique: false, primaryKey: true},
+    description: { type: Sequelize.TEXT, allowNull: true}
+});
+
+var GROUP = sequelize.define('GROUP', {
+    groupId: { type: Sequelize.STRING, allowNull: false, unique: false, primaryKey: true},
+    description: { type: Sequelize.TEXT, allowNull: true}
+});
+
+var PERMISSION = sequelize.define('PERMISSION', {
+    permissionId: { type: Sequelize.STRING, allowNull: false, unique: true, primaryKey: true},
+    groupId: { type: Sequelize.STRING, allowNull: false},
+    permission: { type: Sequelize.TEXT, allowNull: false}
+});
+
+
+function _getPermission(user)
+{
+    // get groups from user
+    // get permissions from groups
+}
+
 sequelize.sync().then(function()
     {
         log.info("Database structure updated");
@@ -70,5 +94,8 @@ module.exports = {
     CAL: CAL,
     VCARD: VCARD,
     ADB: ADDRESSBOOK,
+    getPermission: function (user) {
+        return _getPermission(user);
+    },
     sequelize: sequelize
 };
