@@ -1157,7 +1157,7 @@ function handleReportCalendarQuery(comm, xmlDoc)
                                 break;
 
                             case 'calendar-data':
-                                response += "<c:calendar-data>" + ics.content + "</c:calendar-data>";
+                                response += "<cal:calendar-data>" + ics.content + "</cal:calendar-data>"; // has to be cal: since a few lines below the namespace is cal: not c:
                                 break;
 
                             default:
