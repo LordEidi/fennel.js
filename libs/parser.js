@@ -17,6 +17,24 @@ function parseICS(file)
 
     var result = "";
 
+    
+	// Remove empty lines
+	for(var j = 1; j < lines.length; j++)
+    {
+		if (lines[j].length == 0) {
+			lines.splice(j, 1);
+		}
+	}
+	// Unfold the lines, if no : assume it is folded with previous
+	for(var j = 1; j < lines.length; j++)
+    {
+		if (lines[j].indexOf(":") == -1) {
+			lines[j-1] = lines[j-1]+lines[j];
+			lines.splice(j, 1);
+			j--;
+		}
+	}
+	
     var len = lines.length;
     for(var i = 0; i < len; i++)
     {
