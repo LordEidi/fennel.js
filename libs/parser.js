@@ -13,10 +13,31 @@ var log = log4js.getLogger("parser");
 
 function parseICS(file)
 {
+    //TODO caveman parser, should be replaced with something more stable
     var lines = file.split(/[\r\n|\n\r|\n|\r]/g);
 
     var result = "";
 
+	// Remove empty lines
+	for(var j = 1; j < lines.length; j++)
+    {
+		if (lines[j].length == 0)
+		{
+			lines.splice(j, 1);
+		}
+	}
+
+	// Unfold the lines, if no : assume it is folded with previous
+	for(var j = 1; j < lines.length; j++)
+    {
+		if (lines[j].indexOf(":") == -1)
+		{
+			lines[j-1] = lines[j-1] + lines[j];
+			lines.splice(j, 1);
+			j--; // make sure to decrease the counter since we deleted one line...
+		}
+	}
+	
     var len = lines.length;
     for(var i = 0; i < len; i++)
     {
@@ -61,8 +82,6 @@ function parseICS(file)
                     // todo, see above
                     result += "\"" + key.split(";")[0] + "\":\"" + val + "\",";
                 }
-
-
             }
         }
     }
