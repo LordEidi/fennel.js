@@ -7,10 +7,22 @@ Fennel.js
 
 ## Introduction ##
 
-**Fennel.js** is a lightweight CardDAV / CalDAV server. It is completely written in JavaScript and runs within a Node.js instance.
-It does have some dependencies regarding JavaScript libraries, but all of these can be installed with the help of the npm.
+**Fennel.js** is a proof of concept CardDAV / CalDAV server written in JavaScript. It runs within a Node.js instance.
 
-If you are looking for a lightweight CalDAV / CardDAV, **Fennel.js** might be for you:
+
+## Important ##
+
+**Fennel.js** started as a proof of concept to check the technical possibilities of Node.js and JavaScript as well as to validate the complexity of writing your own CalDAV and CardDAV server.
+
+When starting with **Fennel.js**, we quickly noticed a few challenges with the chosen technology. One of which is getting a lightweight, hassle free installation. This is the main reason that we from [SwordLord - the coding crew](http://www.swordlord.com/) decided to slow down development on the **Fennel.js* port and focus our efforts on the new Go based [Fennel](https://github.com/swordlordcodingcrew/fennel) version instead.
+
+If you need to use JavaScript / Node.js and you can life with fact that the quirks will not be addressed quickly, stay on **Fennel.js**.
+
+If you prefer quicker development and a hassle free installation and maintenance. Have a look at [Fennel](https://github.com/swordlordcodingcrew/fennel)
+
+## What is Fennel.js ##
+
+If you are looking for a lightweight CalDAV / CardDAV server, **Fennel.js** might be for you:
 
 - authentication is meant to be pluggable. While we concentrate on CourierAuth and .htaccess, you can add whatever can check a
 username and password.
@@ -24,6 +36,7 @@ accordingly.
 
 **Fennel.js** is beta software and should be handled as such:
 
+- The development on this project slowed down. We are now concentrating on the Go port of [Fennel](https://github.com/swordlordcodingcrew/fennel).
 - The CalDAV part is mostly done and now ready for a first public beta.
 - The CardDAV part is running and now ready for a first public beta as well.
 
