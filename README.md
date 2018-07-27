@@ -1,40 +1,40 @@
-Fennel
-======
+Fennel.js
+=========
 
-![Fennel](https://raw.github.com/LordEidi/fennel/master/fennel_logo.png)
+![Fennel.js](https://raw.github.com/LordEidi/fennel.js/master/fennel_logo.png)
 
-**Fennel** (c) 2014-17 by [SwordLord - the coding crew](http://www.swordlord.com/)
+**Fennel.js** (c) 2014-17 by [SwordLord - the coding crew](http://www.swordlord.com/)
 
 ## Introduction ##
 
-**Fennel** is a lightweight CardDAV / CalDAV server. It is completely written in JavaScript and runs within a Node.js instance.
+**Fennel.js** is a lightweight CardDAV / CalDAV server. It is completely written in JavaScript and runs within a Node.js instance.
 It does have some dependencies regarding JavaScript libraries, but all of these can be installed with the help of the npm.
 
-If you are looking for a lightweight CalDAV / CardDAV, **Fennel** might be for you:
+If you are looking for a lightweight CalDAV / CardDAV, **Fennel.js** might be for you:
 
 - authentication is meant to be pluggable. While we concentrate on CourierAuth and .htaccess, you can add whatever can check a
 username and password.
 - the data storage backend is meant to be pluggable as well. While we start with SQLite3, we do use an ORM. Whatever
-database can be used with *Sequelize* can be used as storage backend for **Fennel**. You just have to change the settings
+database can be used with *Sequelize* can be used as storage backend for **Fennel.js**. You just have to change the settings
 accordingly.
 - instead of inventing the wheel, we prefer to use some of those fine node.js based libraries.
-- and after all, **Fennel** is OSS and is written in JavaScript. Whatever you do not like, you are free to replace / rewrite. Just respect the licence and give back.
+- and after all, **Fennel.js** is OSS and is written in JavaScript. Whatever you do not like, you are free to replace / rewrite. Just respect the licence and give back.
 
 ## Status ##
 
-**Fennel** is beta software and should be handled as such:
+**Fennel.js** is beta software and should be handled as such:
 
 - The CalDAV part is mostly done and now ready for a first public beta.
 - The CardDAV part is running and now ready for a first public beta as well.
 
-**Fennel** is tested on Calendar on iOS > v7.0 and on OSX Calendar as well as with Mozilla Lightning. If you run
-**Fennel** with another client your mileage may vary.
+**Fennel.js** is tested on Calendar on iOS > v7.0 and on OSX Calendar as well as with Mozilla Lightning. If you run
+**Fennel.js** with another client your mileage may vary.
 
 What's missing:
 
 - different clients (we will somewhen test with other clients, but we did not do thoroughly yet)
-- Test cases for everything. We would love to have test cases for as many scenarios and features as possible. It is a pain in the neck to test **Fennel** otherwise.
-- While **Fennel**'s goal is to have an RBAC based authorisation system, **Fennel** does currently only know global permissions without groups.
+- Test cases for everything. We would love to have test cases for as many scenarios and features as possible. It is a pain in the neck to test **Fennel.js** otherwise.
+- While **Fennel.js**'s goal is to have an RBAC based authorisation system, **Fennel.js** does currently only know global permissions without groups.
 
 ## Installation ##
 
@@ -57,9 +57,9 @@ and then run:
     brew install node
     brew install npm
 
-### Installation of **Fennel** ###
+### Installation of **Fennel.js** ###
 
-If you want to run **Fennel** under a specific user (node), do this:
+If you want to run **Fennel.js** under a specific user (node), do this:
 
     sudo adduser node
     su node
@@ -67,20 +67,20 @@ If you want to run **Fennel** under a specific user (node), do this:
     mkdir fennel
     cd fennel
 
-Go into the directory where you want to run your copy of **Fennel** and get the latest and greatest:
+Go into the directory where you want to run your copy of **Fennel.js** and get the latest and greatest:
 
     cd /home/node/fennel
-    git clone https://github.com/LordEidi/fennel.git
+    git clone https://github.com/LordEidi/fennel.js.git
 
 And then with the magic of npm get the required libraries
 
     npm install
 
-If everything worked according to plan, you should now have a new installation of the latest **Fennel**.
+If everything worked according to plan, you should now have a new installation of the latest **Fennel.js**.
 
-### Use supervisord to run **Fennel** as a service ###
+### Use supervisord to run **Fennel.js** as a service ###
 
-Now we want to make sure that **Fennel** runs forever. First install the required software:
+Now we want to make sure that **Fennel.js** runs forever. First install the required software:
 
     sudo apt-get install supervisor
 
@@ -92,7 +92,7 @@ Make sure you change the configuration to your local setup.
 
 ### How to set up transport security ###
 
-Since **Fennel** does not bring it's own crypto, you may need to install a TLS server in front of **Fennel**. You can do so
+Since **Fennel.js** does not bring it's own crypto, you may need to install a TLS server in front of **Fennel.js**. You can do so
 with nginx, which is a lightweight http server and proxy.
 
 First prepare your /etc/apt/sources.list file (or just install the standard Debian package, your choice):
@@ -106,7 +106,7 @@ Update apt-cache and install nginx to your system.
     sudo apt-get install nginx
 
 Now configure a proxy configuration so that your instance of nginx will serve / prox the content of / for the
-**Fennel** server. To do so, you will need a configuration along this example:
+**Fennel.js** server. To do so, you will need a configuration along this example:
 
     server {
         listen   443;
@@ -150,15 +150,15 @@ Please check this site for updates on what TLS settings currently make sense:
 
 [https://mozilla.github.io/server-side-tls/ssl-config-generator](https://mozilla.github.io/server-side-tls/ssl-config-generator)
 
-Now run or reset your nginx and start your instance of **Fennel**.
+Now run or reset your nginx and start your instance of **Fennel.js**.
 
-Thats it, your instance of **Fennel** should run now. All logs are sent to stdout for now. Have a look at */libs/log.js* if
+Thats it, your instance of **Fennel.js** should run now. All logs are sent to stdout for now. Have a look at */libs/log.js* if
 you want to change the options.
 
 ## Configuration ##
 
 All parameters which can be configured right now are in the file *config.js*. There are not much parameters yet, indeed.
-But **Fennel** is not ready production anyway. And you are welcome to help out in adding parameters and configuration
+But **Fennel.js** is not ready production anyway. And you are welcome to help out in adding parameters and configuration
 options.
 
 ### Authentication - auth_method ###
@@ -172,29 +172,29 @@ The authentication method to use to authenticate users. Supported methods so far
 
 ### Authorisation ###
 
-**Fennel**'s authorisation strategy is based on the npm module shiro-trie. Permissions are written in an [Apache Shiro](http://shiro.apache.org/permissions.html)-like style.
+**Fennel.js**'s authorisation strategy is based on the npm module shiro-trie. Permissions are written in an [Apache Shiro](http://shiro.apache.org/permissions.html)-like style.
 
 Permission is given on an URL and http method basis. Which means permissions can be given on a specific URL and method or with a wildcard character on multiple URLs and methods.
 
 When defining your own permissions, make sure to change the URL syntax to the shiro syntax. Which means that /my/url/ becomes my:url. See the standard configuration for details.
 
-While **Fennel**'s goal is to have an RBAC based authorisation system, **Fennel** does currently only know global permissions without groups. See also [Contribution](Contribution).
+While **Fennel.js**'s goal is to have an RBAC based authorisation system, **Fennel.js** does currently only know global permissions without groups. See also [Contribution](Contribution).
 
 ## How to run ##
 
-Point your CalDAV and CardDAV client to the root of **Fennel**. All the rest should be managed by **Fennel** via
-*./well-known* URLs and the chat between your client and **Fennel**.
+Point your CalDAV and CardDAV client to the root of **Fennel.js**. All the rest should be managed by **Fennel.js** via
+*./well-known* URLs and the chat between your client and **Fennel.js**.
 
 
 ## Test cases ##
 
-There are a few test cases to check the working of **Fennel**. Make sure to
+There are a few test cases to check the working of **Fennel.js**. Make sure to
 
 - check your configuration, especially the test user and password.
-- run an instance of **Fennel**.
+- run an instance of **Fennel.js**.
 - run: npm test
 
-You can find the test cases in the test directory. All cases are made to be run against your (local) copy of **Fennel**.
+You can find the test cases in the test directory. All cases are made to be run against your (local) copy of **Fennel.js**.
 
 
 ## Contribution ##
@@ -214,4 +214,4 @@ If you:
 
 ## License ##
 
-**Fennel** is published under the GNU Affero General Public Licence version 3. See the LICENCE file for details.
+**Fennel.js** is published under the GNU Affero General Public Licence version 3. See the LICENCE file for details.
