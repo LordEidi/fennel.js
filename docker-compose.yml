@@ -1,0 +1,9 @@
+version: '3.1'
+
+services:
+  fennel:
+    build: .
+    container_name: fennel
+    restart: always
+    ports:
+      - 8888:8888
