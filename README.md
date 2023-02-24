@@ -16,9 +16,7 @@ Fennel.js
 
 When starting with **Fennel.js**, we quickly noticed a few challenges with the chosen technology. One of which is getting a lightweight, hassle free installation. This is the main reason that we from [SwordLord - the coding crew](http://www.swordlord.com/) decided to slow down development on the **Fennel.js* port and focus our efforts on the new Go based [Fennel](https://github.com/swordlordcodingcrew/fennel) version instead.
 
-If you need to use JavaScript / Node.js and you can life with fact that the quirks will not be addressed quickly, stay on **Fennel.js**.
-
-If you prefer quicker development and a hassle free installation and maintenance. Have a look at [Fennel](https://github.com/swordlordcodingcrew/fennel)
+This project is not actively maintained anymore. Have a look at [Fennel](https://github.com/swordlordcodingcrew/fennel) instead.
 
 ## What is Fennel.js ##
 
